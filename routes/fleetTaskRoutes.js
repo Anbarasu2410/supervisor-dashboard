@@ -1,16 +1,16 @@
-const express = require('express');
+import express from 'express';
+import FleetTask from '../models/FleetTask.js';
+import Company from '../models/Company.js';
+import FleetVehicle from '../models/FleetVehicle.js';
+import Employee from '../models/Employee.js';
+import Project from '../models/Project.js';
+
 const router = express.Router();
-const FleetTask = require('../models/FleetTask');
-const Company = require('../models/Company');
-const FleetVehicle=require('../models/FleetVehicle');
-//const Employee = require('../models/Employee');
-const Project = require('../models/Project'); 
 
+// ✅ Utility: Safely parse integer fields
+const toInt = (value) => (value ? parseInt(value) : null);
 
-
-// GET /api/fleet-tasks - Get all fleet tasks with pagination
-// GET /api/fleet-tasks - Get all fleet tasks with pagination
-// GET /api/fleet-tasks
+// ✅ GET /api/fleet-tasks - Get all fleet tasks with pagination
 router.get('/', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -18,9 +18,7 @@ router.get('/', async (req, res) => {
     const skip = (page - 1) * limit;
 
     const query = {};
-    if (req.query.companyId) {
-      query.companyId = parseInt(req.query.companyId);
-    }
+    if (req.query.companyId) query.companyId = toInt(req.query.companyId);
 
     const fleetTasks = await FleetTask.find(query)
       .sort({ taskDate: -1, id: -1 })
@@ -31,22 +29,21 @@ router.get('/', async (req, res) => {
       fleetTasks.map(async (task) => {
         const [company, driver, employee, project, vehicle] = await Promise.all([
           Company.findOne({ id: task.companyId }),
-          Employee.findOne({ id: task.driverId }),    // driverId → Employee
-          Employee.findOne({ id: task.employeeId }),  // optional creator employee
+          Employee.findOne({ id: task.driverId }),
+          Employee.findOne({ id: task.createdBy }),
           Project.findOne({ id: task.projectId }),
           FleetVehicle.findOne({ id: task.vehicleId }),
         ]);
 
         return {
           ...task.toObject(),
-          companyName: company ? company.name : 'Unknown Company',
-          tenantCode: company ? company.tenantCode : 'N/A',
-          driverName: driver ? driver.fullName : 'Unknown Driver',
-          employeeFullName: employee ? employee.fullName : 'Unknown Employee',
-          projectName: project ? project.name : 'Unknown Project',
-          vehicleCode: vehicle
-            ? `${vehicle.vehicleCode || vehicle.registrationNo || 'Unknown'}`
-            : 'Unknown Vehicle',
+          companyName: company?.name || 'Unknown Company',
+          tenantCode: company?.tenantCode || 'N/A',
+          driverName: driver?.fullName || 'Unknown Driver',
+          employeeFullName: employee?.fullName || 'Unknown Employee',
+          projectName: project?.name || 'Unknown Project',
+          vehicleCode:
+            vehicle?.vehicleCode || vehicle?.registrationNo || 'Unknown Vehicle',
         };
       })
     );
@@ -65,60 +62,42 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching fleet tasks:', error);
-    res.status(500).json({
-      success: false,
-      message: `Error fetching fleet tasks: ${error.message}`,
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
-
-
-
-// GET /api/fleet-tasks/:id - Get single fleet task
+// ✅ GET /api/fleet-tasks/:id - Get single fleet task
 router.get('/:id', async (req, res) => {
   try {
-    let fleetTask;
-    if (req.params.id.match(/^[0-9]+$/)) {
-      // Search by numeric id
-      fleetTask = await FleetTask.findOne({ id: parseInt(req.params.id) });
-    } else {
-      // Search by MongoDB _id
-      fleetTask = await FleetTask.findById(req.params.id);
-    }
+    const id = req.params.id;
+    const fleetTask = /^\d+$/.test(id)
+      ? await FleetTask.findOne({ id: parseInt(id) })
+      : await FleetTask.findById(id);
 
-    if (!fleetTask) {
-      return res.status(404).json({
-        success: false,
-        message: 'Fleet task not found'
-      });
-    }
+    if (!fleetTask)
+      return res
+        .status(404)
+        .json({ success: false, message: 'Fleet task not found' });
 
-    // Get company name
     const company = await Company.findOne({ id: fleetTask.companyId });
-    const taskWithCompany = {
-      ...fleetTask.toObject(),
-      companyName: company ? company.name : 'Unknown Company',
-      tenantCode: company ? company.tenantCode : 'N/A'
-    };
-
     res.json({
       success: true,
-      data: taskWithCompany
+      data: {
+        ...fleetTask.toObject(),
+        companyName: company?.name || 'Unknown Company',
+        tenantCode: company?.tenantCode || 'N/A',
+      },
     });
   } catch (error) {
     console.error('Error fetching fleet task:', error);
-    res.status(500).json({
-      success: false,
-      message: `Error fetching fleet task: ${error.message}`
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// POST /api/fleet-tasks - Create new fleet task
+// ✅ POST /api/fleet-tasks - Create new fleet task
 router.post('/', async (req, res) => {
   try {
-    const { 
+    const {
       companyId,
       vehicleId,
       taskDate,
@@ -132,36 +111,30 @@ router.post('/', async (req, res) => {
       status,
       notes,
       driverId,
-      projectId
+      projectId,
+      createdBy,
     } = req.body;
 
-    // Validate required fields
     if (!companyId || !vehicleId || !taskDate) {
       return res.status(400).json({
         success: false,
-        message: 'Company ID, Vehicle ID, and Task Date are required'
+        message: 'Company ID, Vehicle ID, and Task Date are required',
       });
     }
 
-    // Check if company exists
-    const company = await Company.findOne({ id: parseInt(companyId) });
-    if (!company) {
-      return res.status(404).json({
-        success: false,
-        message: 'Company not found'
-      });
-    }
+    const company = await Company.findOne({ id: toInt(companyId) });
+    if (!company)
+      return res.status(404).json({ success: false, message: 'Company not found' });
 
-    // Generate numeric ID
     const lastTask = await FleetTask.findOne().sort({ id: -1 });
     const newId = lastTask ? lastTask.id + 1 : 1;
 
     const fleetTask = new FleetTask({
       id: newId,
-      companyId: parseInt(companyId),
-      vehicleId: parseInt(vehicleId),
-      driverId: driverId ? parseInt(driverId) : null,
-      projectId: projectId ? parseInt(projectId) : null,
+      companyId: toInt(companyId),
+      vehicleId: toInt(vehicleId),
+      driverId: toInt(driverId),
+      projectId: toInt(projectId),
       taskDate: new Date(taskDate),
       plannedPickupTime: plannedPickupTime ? new Date(plannedPickupTime) : null,
       plannedDropTime: plannedDropTime ? new Date(plannedDropTime) : null,
@@ -172,125 +145,97 @@ router.post('/', async (req, res) => {
       expectedPassengers: expectedPassengers || 0,
       status: status || 'PLANNED',
       notes: notes?.trim() || '',
-      createdBy: req.body.createdBy || null
+      createdBy: createdBy || null,
     });
 
     const savedTask = await fleetTask.save();
 
-    // Add company name to response
-    const taskWithCompany = {
-      ...savedTask.toObject(),
-      companyName: company.name,
-      tenantCode: company.tenantCode
-    };
-
     res.status(201).json({
       success: true,
       message: 'Fleet task created successfully',
-      data: taskWithCompany
+      data: {
+        ...savedTask.toObject(),
+        companyName: company.name,
+        tenantCode: company.tenantCode,
+      },
     });
   } catch (error) {
     console.error('Error creating fleet task:', error);
-    res.status(500).json({
-      success: false,
-      message: `Error creating fleet task: ${error.message}`
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// PUT /api/fleet-tasks/:id - Update fleet task
+// ✅ PUT /api/fleet-tasks/:id - Update fleet task
 router.put('/:id', async (req, res) => {
   try {
     const updateData = { ...req.body };
-    
-    // Convert numeric fields
-    if (updateData.companyId) updateData.companyId = parseInt(updateData.companyId);
-    if (updateData.vehicleId) updateData.vehicleId = parseInt(updateData.vehicleId);
-    if (updateData.driverId) updateData.driverId = parseInt(updateData.driverId);
-    if (updateData.projectId) updateData.projectId = parseInt(updateData.projectId);
-    
-    // Convert date fields
-    if (updateData.taskDate) updateData.taskDate = new Date(updateData.taskDate);
-    if (updateData.plannedPickupTime) updateData.plannedPickupTime = new Date(updateData.plannedPickupTime);
-    if (updateData.plannedDropTime) updateData.plannedDropTime = new Date(updateData.plannedDropTime);
-    if (updateData.actualStartTime) updateData.actualStartTime = new Date(updateData.actualStartTime);
-    if (updateData.actualEndTime) updateData.actualEndTime = new Date(updateData.actualEndTime);
+
+    ['companyId', 'vehicleId', 'driverId', 'projectId'].forEach((field) => {
+      if (updateData[field]) updateData[field] = toInt(updateData[field]);
+    });
+
+    ['taskDate', 'plannedPickupTime', 'plannedDropTime', 'actualStartTime', 'actualEndTime'].forEach(
+      (field) => {
+        if (updateData[field]) updateData[field] = new Date(updateData[field]);
+      }
+    );
 
     updateData.updatedAt = Date.now();
 
-    let updatedTask;
-    if (req.params.id.match(/^[0-9]+$/)) {
-      updatedTask = await FleetTask.findOneAndUpdate(
-        { id: parseInt(req.params.id) },
-        updateData,
-        { new: true, runValidators: true }
-      );
-    } else {
-      updatedTask = await FleetTask.findByIdAndUpdate(
-        req.params.id,
-        updateData,
-        { new: true, runValidators: true }
-      );
-    }
+    const id = req.params.id;
+    const updatedTask = /^\d+$/.test(id)
+      ? await FleetTask.findOneAndUpdate({ id: parseInt(id) }, updateData, {
+          new: true,
+          runValidators: true,
+        })
+      : await FleetTask.findByIdAndUpdate(id, updateData, {
+          new: true,
+          runValidators: true,
+        });
 
-    if (!updatedTask) {
-      return res.status(404).json({
-        success: false,
-        message: 'Fleet task not found'
-      });
-    }
+    if (!updatedTask)
+      return res
+        .status(404)
+        .json({ success: false, message: 'Fleet task not found' });
 
-    // Get company name
     const company = await Company.findOne({ id: updatedTask.companyId });
-    const taskWithCompany = {
-      ...updatedTask.toObject(),
-      companyName: company ? company.name : 'Unknown Company',
-      tenantCode: company ? company.tenantCode : 'N/A'
-    };
-
     res.json({
       success: true,
       message: 'Fleet task updated successfully',
-      data: taskWithCompany
+      data: {
+        ...updatedTask.toObject(),
+        companyName: company?.name || 'Unknown Company',
+        tenantCode: company?.tenantCode || 'N/A',
+      },
     });
   } catch (error) {
     console.error('Error updating fleet task:', error);
-    res.status(500).json({
-      success: false,
-      message: `Error updating fleet task: ${error.message}`
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// DELETE /api/fleet-tasks/:id - Delete fleet task
+// ✅ DELETE /api/fleet-tasks/:id - Delete fleet task
 router.delete('/:id', async (req, res) => {
   try {
-    let deletedTask;
-    if (req.params.id.match(/^[0-9]+$/)) {
-      deletedTask = await FleetTask.findOneAndDelete({ id: parseInt(req.params.id) });
-    } else {
-      deletedTask = await FleetTask.findByIdAndDelete(req.params.id);
-    }
+    const id = req.params.id;
+    const deletedTask = /^\d+$/.test(id)
+      ? await FleetTask.findOneAndDelete({ id: parseInt(id) })
+      : await FleetTask.findByIdAndDelete(id);
 
-    if (!deletedTask) {
-      return res.status(404).json({
-        success: false,
-        message: 'Fleet task not found'
-      });
-    }
+    if (!deletedTask)
+      return res
+        .status(404)
+        .json({ success: false, message: 'Fleet task not found' });
 
     res.json({
       success: true,
       message: 'Fleet task deleted successfully',
-      data: deletedTask
+      data: deletedTask,
     });
   } catch (error) {
     console.error('Error deleting fleet task:', error);
-    res.status(500).json({
-      success: false,
-      message: `Error deleting fleet task: ${error.message}`
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
-module.exports = router;
+export default router;

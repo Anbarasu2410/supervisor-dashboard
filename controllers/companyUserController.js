@@ -1,73 +1,64 @@
-const CompanyUser = require('../models/CompanyUser');
+// backend/controllers/companyUserController.js
+import CompanyUser from '../models/CompanyUser.js';
 
 // Create new company user
-const createCompanyUser = async (req, res) => {
+export const createCompanyUser = async (req, res) => {
   try {
-    const { id, companyId, userId, role, isPrimary } = req.body;
+    const { companyId, userId, role, isPrimary } = req.body;
 
-    // Validate required fields
-    if (!id || !companyId || !userId || !role) {
+    if (!companyId || !userId || !role) {
       return res.status(400).json({
         success: false,
-        message: 'All fields (id, companyId, userId, role) are required'
+        message: 'All fields (companyId, userId, role) are required'
+      });
+    }
+
+    const existing = await CompanyUser.findOne({ companyId, userId });
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        message: 'User already exists in this company'
       });
     }
 
     const companyUser = new CompanyUser({
-      id,
       companyId,
       userId,
       role,
-      isPrimary
+      isPrimary: isPrimary || false
     });
 
     await companyUser.save();
+
     res.status(201).json({
       success: true,
       data: companyUser
     });
   } catch (error) {
-    if (error.code === 11000) {
-      if (error.keyPattern && error.keyPattern.id) {
-        return res.status(400).json({
-          success: false,
-          message: 'Company user with this ID already exists'
-        });
-      }
-      if (error.keyPattern && error.keyPattern.companyId && error.keyPattern.userId) {
-        return res.status(400).json({
-          success: false,
-          message: 'User already exists in this company'
-        });
-      }
-    }
-    res.status(400).json({
+    console.error("createCompanyUser error:", error);
+    res.status(500).json({
       success: false,
       message: error.message
     });
   }
 };
 
-// Get all company users
-const getCompanyUsers = async (req, res) => {
+// Get all company users with optional filters
+export const getCompanyUsers = async (req, res) => {
   try {
     const { companyId, userId, role, page = 1, limit = 10 } = req.query;
-    let filter = {};
+    const filter = {};
 
     if (companyId) filter.companyId = companyId;
     if (userId) filter.userId = userId;
     if (role) filter.role = role;
 
-    const options = {
-      page: parseInt(page),
-      limit: parseInt(limit),
-      sort: { createdAt: -1 }
-    };
+    const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const companyUsers = await CompanyUser.find(filter)
-      .sort(options.sort)
-      .limit(options.limit * 1)
-      .skip((options.page - 1) * options.limit);
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
 
     const total = await CompanyUser.countDocuments(filter);
 
@@ -75,11 +66,12 @@ const getCompanyUsers = async (req, res) => {
       success: true,
       count: companyUsers.length,
       total,
-      page: options.page,
-      pages: Math.ceil(total / options.limit),
+      page: parseInt(page),
+      pages: Math.ceil(total / parseInt(limit)),
       data: companyUsers
     });
   } catch (error) {
+    console.error("getCompanyUsers error:", error);
     res.status(500).json({
       success: false,
       message: error.message
@@ -88,9 +80,9 @@ const getCompanyUsers = async (req, res) => {
 };
 
 // Get company user by ID
-const getCompanyUserById = async (req, res) => {
+export const getCompanyUserById = async (req, res) => {
   try {
-    const companyUser = await CompanyUser.findOne({ id: req.params.id });
+    const companyUser = await CompanyUser.findById(req.params.id);
 
     if (!companyUser) {
       return res.status(404).json({
@@ -104,6 +96,7 @@ const getCompanyUserById = async (req, res) => {
       data: companyUser
     });
   } catch (error) {
+    console.error("getCompanyUserById error:", error);
     res.status(500).json({
       success: false,
       message: error.message
@@ -112,11 +105,10 @@ const getCompanyUserById = async (req, res) => {
 };
 
 // Update company user
-const updateCompanyUser = async (req, res) => {
+export const updateCompanyUser = async (req, res) => {
   try {
     const { role, isPrimary } = req.body;
 
-    // Prevent updating companyId and userId as they're part of unique constraint
     if (req.body.companyId || req.body.userId) {
       return res.status(400).json({
         success: false,
@@ -124,12 +116,9 @@ const updateCompanyUser = async (req, res) => {
       });
     }
 
-    const companyUser = await CompanyUser.findOneAndUpdate(
-      { id: req.params.id },
-      { 
-        role, 
-        isPrimary
-      },
+    const companyUser = await CompanyUser.findByIdAndUpdate(
+      req.params.id,
+      { role, isPrimary },
       { new: true, runValidators: true }
     );
 
@@ -145,7 +134,8 @@ const updateCompanyUser = async (req, res) => {
       data: companyUser
     });
   } catch (error) {
-    res.status(400).json({
+    console.error("updateCompanyUser error:", error);
+    res.status(500).json({
       success: false,
       message: error.message
     });
@@ -153,9 +143,9 @@ const updateCompanyUser = async (req, res) => {
 };
 
 // Delete company user
-const deleteCompanyUser = async (req, res) => {
+export const deleteCompanyUser = async (req, res) => {
   try {
-    const companyUser = await CompanyUser.findOneAndDelete({ id: req.params.id });
+    const companyUser = await CompanyUser.findByIdAndDelete(req.params.id);
 
     if (!companyUser) {
       return res.status(404).json({
@@ -170,6 +160,7 @@ const deleteCompanyUser = async (req, res) => {
       data: companyUser
     });
   } catch (error) {
+    console.error("deleteCompanyUser error:", error);
     res.status(500).json({
       success: false,
       message: error.message
@@ -178,20 +169,15 @@ const deleteCompanyUser = async (req, res) => {
 };
 
 // Get users by company
-const getUsersByCompany = async (req, res) => {
+export const getUsersByCompany = async (req, res) => {
   try {
     const { page = 1, limit = 10 } = req.query;
-    
-    const options = {
-      page: parseInt(page),
-      limit: parseInt(limit),
-      sort: { createdAt: -1 }
-    };
+    const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const companyUsers = await CompanyUser.find({ companyId: req.params.companyId })
-      .sort(options.sort)
-      .limit(options.limit * 1)
-      .skip((options.page - 1) * options.limit);
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
 
     const total = await CompanyUser.countDocuments({ companyId: req.params.companyId });
 
@@ -199,11 +185,12 @@ const getUsersByCompany = async (req, res) => {
       success: true,
       count: companyUsers.length,
       total,
-      page: options.page,
-      pages: Math.ceil(total / options.limit),
+      page: parseInt(page),
+      pages: Math.ceil(total / parseInt(limit)),
       data: companyUsers
     });
   } catch (error) {
+    console.error("getUsersByCompany error:", error);
     res.status(500).json({
       success: false,
       message: error.message
@@ -212,20 +199,15 @@ const getUsersByCompany = async (req, res) => {
 };
 
 // Get companies by user
-const getCompaniesByUser = async (req, res) => {
+export const getCompaniesByUser = async (req, res) => {
   try {
     const { page = 1, limit = 10 } = req.query;
-    
-    const options = {
-      page: parseInt(page),
-      limit: parseInt(limit),
-      sort: { createdAt: -1 }
-    };
+    const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const companyUsers = await CompanyUser.find({ userId: req.params.userId })
-      .sort(options.sort)
-      .limit(options.limit * 1)
-      .skip((options.page - 1) * options.limit);
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
 
     const total = await CompanyUser.countDocuments({ userId: req.params.userId });
 
@@ -233,11 +215,12 @@ const getCompaniesByUser = async (req, res) => {
       success: true,
       count: companyUsers.length,
       total,
-      page: options.page,
-      pages: Math.ceil(total / options.limit),
+      page: parseInt(page),
+      pages: Math.ceil(total / parseInt(limit)),
       data: companyUsers
     });
   } catch (error) {
+    console.error("getCompaniesByUser error:", error);
     res.status(500).json({
       success: false,
       message: error.message
@@ -246,14 +229,11 @@ const getCompaniesByUser = async (req, res) => {
 };
 
 // Get company user by company and user
-const getCompanyUserByCompanyAndUser = async (req, res) => {
+export const getCompanyUserByCompanyAndUser = async (req, res) => {
   try {
     const { companyId, userId } = req.params;
 
-    const companyUser = await CompanyUser.findOne({
-      companyId: companyId,
-      userId: userId
-    });
+    const companyUser = await CompanyUser.findOne({ companyId, userId });
 
     if (!companyUser) {
       return res.status(404).json({
@@ -267,20 +247,10 @@ const getCompanyUserByCompanyAndUser = async (req, res) => {
       data: companyUser
     });
   } catch (error) {
+    console.error("getCompanyUserByCompanyAndUser error:", error);
     res.status(500).json({
       success: false,
       message: error.message
     });
   }
-};
-
-module.exports = {
-  createCompanyUser,
-  getCompanyUsers,
-  getCompanyUserById,
-  updateCompanyUser,
-  deleteCompanyUser,
-  getUsersByCompany,
-  getCompaniesByUser,
-  getCompanyUserByCompanyAndUser
 };

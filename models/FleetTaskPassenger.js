@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const fleetTaskPassengerSchema = new mongoose.Schema({
   id: {
@@ -19,7 +19,7 @@ const fleetTaskPassengerSchema = new mongoose.Schema({
   workerEmployeeId: {
     type: Number,
     required: true,
-   // ref: 'Employee'
+    // ref: 'Employee' // Uncomment if Employee model exists
   },
   pickupConfirmedAt: {
     type: Date
@@ -29,23 +29,25 @@ const fleetTaskPassengerSchema = new mongoose.Schema({
   },
   pickupStatus: {
     type: String,
-    enum: ["pending", "confirmed", "missed"],
-    default: "pending",
+    enum: ['pending', 'confirmed', 'missed'],
+    default: 'pending'
   },
   dropStatus: {
     type: String,
-    enum: ["pending", "confirmed", "missed"],
-    default: "pending",
+    enum: ['pending', 'confirmed', 'missed'],
+    default: 'pending'
   },
   notes: {
     type: String,
     trim: true
   },
-  
   createdAt: {
     type: Date,
     default: Date.now
   }
 });
 
-module.exports = mongoose.model('FleetTaskPassenger', fleetTaskPassengerSchema, 'fleetTaskPassengers');
+// Explicit collection name: 'fleetTaskPassengers'
+const FleetTaskPassenger = mongoose.model('FleetTaskPassenger', fleetTaskPassengerSchema, 'fleetTaskPassengers');
+
+export default FleetTaskPassenger;

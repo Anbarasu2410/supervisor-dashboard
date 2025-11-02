@@ -1,22 +1,35 @@
-const express = require('express');
-const router = express.Router();
-const {
+import express from 'express';
+import {
   createFleetVehicle,
   getFleetVehicles,
   getFleetVehicleById,
   getFleetVehiclesByCompany,
   getFleetVehiclesByStatus,
   updateFleetVehicle,
-  deleteFleetVehicle
-} = require('../controllers/fleetVehicleController');
+  deleteFleetVehicle,
+} from '../controllers/fleetVehicleController.js';
 
-// Make sure all these functions are exported from your controller
+const router = express.Router();
+
+// 🚗 Create a new fleet vehicle
 router.post('/', createFleetVehicle);
+
+// 📋 Get all fleet vehicles
 router.get('/', getFleetVehicles);
-router.get('/:id', getFleetVehicleById);
+
+// 🏢 Get vehicles by company
 router.get('/company/:companyId', getFleetVehiclesByCompany);
+
+// ⚙️ Get vehicles by status
 router.get('/status/:status', getFleetVehiclesByStatus);
+
+// 🔍 Get single fleet vehicle by ID
+router.get('/:id', getFleetVehicleById);
+
+// ✏️ Update fleet vehicle
 router.put('/:id', updateFleetVehicle);
+
+// 🗑️ Delete fleet vehicle
 router.delete('/:id', deleteFleetVehicle);
 
-module.exports = router;
+export default router;

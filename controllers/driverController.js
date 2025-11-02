@@ -1,300 +1,179 @@
-const FleetTask = require('../models/FleetTask');
-const FleetVehicle = require('../models/FleetVehicle');
-const Project = require('../models/Project');
-const FleetTaskPassenger = require('../models/FleetTaskPassenger');
-const User = require('../models/User');
-const Employee = require('../models/Employee');
-const Company = require('../models/Company');
-const CompanyUser = require('../models/CompanyUser');
-const bcrypt = require('bcryptjs');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+// ==============================
+// Imports (ESM Syntax)
+// ==============================
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import multer from "multer";
+import fs from "fs";
+import path from "path";
 
-// Configure multer for file uploads
+import User from "../models/User.js";
+import Company from "../models/Company.js";
+import CompanyUser from "../models/CompanyUser.js";
+import Employee from "../models/Employee.js";
+import FleetTask from "../models/FleetTask.js";
+import FleetVehicle from "../models/FleetVehicle.js";
+import Project from "../models/Project.js";
+import FleetTaskPassenger from "../models/FleetTaskPassenger.js";
+
+// ==============================
+// Multer Configuration for Driver Photo Upload
+// ==============================
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = 'uploads/drivers/';
+    const uploadDir = "uploads/drivers/";
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
     cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const userId = req.user.id || req.user.userId;
-    cb(null, 'driver-' + userId + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const userId = req.user?.id || req.user?.userId || "unknown";
+    cb(null, `driver-${userId}-${uniqueSuffix}${path.extname(file.originalname)}`);
+  },
 });
 
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/')) {
-    cb(null, true);
-  } else {
-    cb(new Error('Only image files are allowed!'), false);
-  }
+  if (file.mimetype.startsWith("image/")) cb(null, true);
+  else cb(new Error("Only image files are allowed!"), false);
 };
 
-const upload = multer({
-  storage: storage,
-  fileFilter: fileFilter,
-  limits: {
-    fileSize: 5 * 1024 * 1024
-  }
+export const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
 });
 
-// 🔹 DRIVER PROFILE FUNCTIONS - FIXED FOR MULTI-COLLECTION
+// ==============================
+// DRIVER PROFILE APIs
+// ==============================
 
-/**
- * GET /api/driver/profile
- * Get driver profile information - FIXED VERSION
- */
-const getDriverProfile = async (req, res) => {
+export const getDriverProfile = async (req, res) => {
   try {
-    console.log("🔍 req.user object:", req.user);
     const user = req.user;
     const driverId = Number(user.id || user.userId);
     const companyId = Number(user.companyId);
 
-    console.log(`📌 Fetching driver profile for user ID: ${driverId}, company: ${companyId}`);
+    const [company, userDetails, employee] = await Promise.all([
+      Company.findOne({ id: companyId }),
+      User.findOne({ id: driverId }),
+      Employee.findOne({ id: driverId }),
+    ]);
 
-    // Check if company exists
-    const companyDetails = await Company.findOne({ id: companyId });
-    if (!companyDetails) {
-      return res.status(404).json({
-        success: false,
-        message: `Company with ID ${companyId} not found`
-      });
-    }
+    if (!userDetails)
+      return res.status(404).json({ success: false, message: "User not found" });
+    if (!employee)
+      return res.status(404).json({ success: false, message: "Employee not found" });
+    if (!company)
+      return res.status(404).json({ success: false, message: "Company not found" });
 
-    // Get user details from users collection
-    const userDetails = await User.findOne({
-      id: driverId
-    });
-
-    if (!userDetails) {
-      console.log(`❌ User not found in users collection`);
-      return res.status(404).json({
-        success: false,
-        message: "User details not found"
-      });
-    }
-
-    // Get employee details from employee collection
-    const employee = await Employee.findOne({
-      id: driverId
-    });
-
-    if (!employee) {
-      console.log(`❌ Employee not found in employee collection`);
-      return res.status(404).json({
-        success: false,
-        message: "Employee details not found"
-      });
-    }
-
-    console.log(`✅ Employee details found: ${employee.fullName}`);
-
-    // Combine data from all collections
     const profile = {
       id: user.id,
-      name: employee.fullName,
+      name: employee.fullName || userDetails.name,
       email: userDetails.email,
       phoneNumber: employee.phone || userDetails.phone || "N/A",
-      companyName: companyDetails.name,
+      companyName: company.name,
       role: user.role,
       photo_url: employee.photo_url || null,
       createdAt: employee.createdAt || userDetails.createdAt,
       updatedAt: employee.updatedAt || employee.createdAt || userDetails.updatedAt,
     };
 
-    console.log(`✅ Final profile data:`, {
-      name: profile.name,
-      email: profile.email,
-      photo_url: profile.photo_url,
-      company: profile.companyName
-    });
-
-    res.json(profile);
-
+    res.json({ success: true, profile });
   } catch (err) {
     console.error("❌ Error fetching driver profile:", err);
-    res.status(500).json({
-      success: false,
-      message: "Server error while fetching driver profile",
-      error: err.message
-    });
+    res.status(500).json({ success: false, message: "Server error", error: err.message });
   }
 };
 
-/**
- * PUT /api/driver/profile/password
- * Change driver password
- */
-const changeDriverPassword = async (req, res) => {
+// ==============================
+// Change Driver Password
+// ==============================
+export const changeDriverPassword = async (req, res) => {
   try {
     const driverId = Number(req.user.id || req.user.userId);
     const { oldPassword, newPassword } = req.body;
 
-    console.log(`📌 Changing password for driver: ${driverId}`);
+    if (!oldPassword || !newPassword)
+      return res.status(400).json({ success: false, message: "Both passwords required" });
 
-    if (!oldPassword || !newPassword) {
-      return res.status(400).json({
-        success: false,
-        message: "Old password and new password are required"
-      });
-    }
+    if (newPassword.length < 6)
+      return res.status(400).json({ success: false, message: "Password too short" });
 
-    if (newPassword.length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: "New password must be at least 6 characters long"
-      });
-    }
+    const user = await User.findOne({ id: driverId });
+    if (!user)
+      return res.status(404).json({ success: false, message: "User not found" });
 
-    // Get user from users collection for password verification
-    const user = await User.findOne({
-      id: driverId
-    });
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found"
-      });
-    }
-
-    // Verify old password
     const isPasswordValid = await bcrypt.compare(oldPassword, user.passwordHash);
-    if (!isPasswordValid) {
-      return res.status(400).json({
-        success: false,
-        message: "Current password is incorrect"
-      });
-    }
+    if (!isPasswordValid)
+      return res.status(400).json({ success: false, message: "Incorrect current password" });
 
-    // Update password in users collection
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
-
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
     await User.updateOne(
       { id: driverId },
-      {
-        $set: {
-          passwordHash: hashedPassword,
-          updatedAt: new Date()
-        }
-      }
+      { $set: { passwordHash: hashedPassword, updatedAt: new Date() } }
     );
 
-    console.log(`✅ Password updated successfully for driver: ${driverId}`);
-    res.json({
-      success: true,
-      message: "Password updated successfully"
-    });
-
+    res.json({ success: true, message: "Password updated successfully" });
   } catch (err) {
     console.error("❌ Error changing password:", err);
-    res.status(500).json({
-      success: false,
-      message: "Server error while changing password",
-      error: err.message
-    });
+    res.status(500).json({ success: false, message: "Server error", error: err.message });
   }
 };
 
-/**
- * POST /api/driver/profile/photo
- * Upload driver profile photo - FIXED VERSION
- */
-const uploadDriverPhoto = async (req, res) => {
+// ==============================
+// Upload Driver Photo
+// ==============================
+export const uploadDriverPhoto = async (req, res) => {
   try {
     const driverId = Number(req.user.id || req.user.userId);
     const companyId = Number(req.user.companyId);
 
-    console.log(`📌 Uploading photo for driver: ${driverId}, company: ${companyId}`);
-
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: "No photo file uploaded"
-      });
-    }
+    if (!req.file)
+      return res.status(400).json({ success: false, message: "No photo file uploaded" });
 
     const photo_url = `/uploads/drivers/${req.file.filename}`;
 
-    // Update photo in Employee collection
-    const updateResult = await Employee.updateOne(
+    await Employee.updateOne(
       { id: driverId },
-      {
-        $set: {
-          photo_url: photo_url,
-          updatedAt: new Date()
-        }
-      }
+      { $set: { photo_url, updatedAt: new Date() } }
     );
 
-    console.log(`✅ Photo update result in Employee collection:`, updateResult);
+    const [employee, company, user] = await Promise.all([
+      Employee.findOne({ id: driverId }),
+      Company.findOne({ id: companyId }),
+      User.findOne({ id: driverId }),
+    ]);
 
-    // Get updated employee data
-    const updatedEmployee = await Employee.findOne({ id: driverId });
-    
-    if (!updatedEmployee) {
-      throw new Error("Employee not found after update");
-    }
-
-    // Get company details for complete profile
-    const companyDetails = await Company.findOne({ id: companyId });
-    const userDetails = await User.findOne({ id: driverId });
-
-    console.log(`✅ Photo uploaded successfully for driver: ${driverId}`);
-    console.log(`✅ New photo URL: ${photo_url}`);
-
-    // Return complete updated profile data
     const updatedProfile = {
       id: driverId,
-      name: updatedEmployee.fullName,
-      email: userDetails?.email || "N/A",
-      phoneNumber: updatedEmployee.phone || "N/A",
-      companyName: companyDetails?.name || "N/A",
+      name: employee.fullName,
+      email: user?.email || "N/A",
+      phoneNumber: employee.phone || "N/A",
+      companyName: company?.name || "N/A",
       role: "driver",
-      photo_url: photo_url,
-      createdAt: updatedEmployee.createdAt,
-      updatedAt: updatedEmployee.updatedAt
+      photo_url,
     };
 
     res.json({
       success: true,
       message: "Profile photo updated successfully",
       driver: updatedProfile,
-      photo_url: photo_url
+      photo_url,
     });
-
   } catch (err) {
-    console.error("❌ Error uploading driver photo:", err);
-    
-    // Clean up uploaded file if error occurred
-    if (req.file) {
-      fs.unlink(req.file.path, (unlinkErr) => {
-        if (unlinkErr) console.error("Error deleting uploaded file:", unlinkErr);
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: "Server error while uploading photo",
-      error: err.message
-    });
+    console.error("❌ Error uploading photo:", err);
+    if (req.file) fs.unlink(req.file.path, () => {});
+    res.status(500).json({ success: false, message: "Upload failed", error: err.message });
   }
 };
 
-// 🔹 EXISTING TASK FUNCTIONS
+// ==============================
+// DRIVER TASK APIs
+// ==============================
 
-/**
- * GET /api/driver/tasks/today
- * Driver's Today's Tasks List
- */
-const getTodaysTasks = async (req, res) => {
+export const getTodaysTasks = async (req, res) => {
   try {
     const driverId = Number(req.user.id || req.user.userId);
     const companyId = Number(req.user.companyId);
@@ -380,11 +259,10 @@ const getTodaysTasks = async (req, res) => {
   }
 };
 
-/**
- * GET /api/driver/trips/history
- * Get driver's trip history with date range
- */
-const getTripHistory = async (req, res) => {
+// ==============================
+// Trip History
+// ==============================
+export const getTripHistory = async (req, res) => {
   try {
     const driverId = Number(req.user.id || req.user.userId);
     const companyId = Number(req.user.companyId);
@@ -468,11 +346,10 @@ const getTripHistory = async (req, res) => {
   }
 };
 
-/**
- * GET /api/driver/tasks/:taskId
- * Get detailed task information for driver
- */
-const getTaskDetails = async (req, res) => {
+// ==============================
+// Task Details
+// ==============================
+export const getTaskDetails = async (req, res) => {
   try {
     const { taskId } = req.params;
     const driverId = Number(req.user.id || req.user.userId);
@@ -561,11 +438,10 @@ const getTaskDetails = async (req, res) => {
   }
 };
 
-/**
- * POST /api/driver/tasks/:taskId/pickup
- * Confirm passenger pickups
- */
-const confirmPickup = async (req, res) => {
+// ==============================
+// Confirm Pickup
+// ==============================
+export const confirmPickup = async (req, res) => {
   try {
     const { taskId } = req.params;
     const { confirmed = [], missed = [] } = req.body;
@@ -679,11 +555,10 @@ const confirmPickup = async (req, res) => {
   }
 };
 
-/**
- * POST /api/driver/tasks/:taskId/drop
- * Confirm passenger drop-offs
- */
-const confirmDrop = async (req, res) => {
+// ==============================
+// Confirm Drop
+// ==============================
+export const confirmDrop = async (req, res) => {
   try {
     const { taskId } = req.params;
     const { confirmed = [], missed = [] } = req.body;
@@ -798,11 +673,10 @@ const confirmDrop = async (req, res) => {
   }
 };
 
-/**
- * GET /api/driver/tasks/:taskId/summary
- * Get trip summary after completion with driver name and date
- */
-const getTripSummary = async (req, res) => {
+// ==============================
+// Trip Summary
+// ==============================
+export const getTripSummary = async (req, res) => {
   try {
     const { taskId } = req.params;
     const driverId = Number(req.user.id || req.user.userId);
@@ -911,20 +785,4 @@ const getTripSummary = async (req, res) => {
       error: err.message,
     });
   }
-};
-
-module.exports = {
-  // Driver Profile Functions
-  getDriverProfile,
-  changeDriverPassword,
-  uploadDriverPhoto,
-  upload,
-  
-  // Existing Task Functions
-  getTodaysTasks,
-  getTripHistory,
-  getTaskDetails,
-  confirmPickup,
-  confirmDrop,
-  getTripSummary
 };

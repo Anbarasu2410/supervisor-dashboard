@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const projectSchema = new mongoose.Schema({
   // Primary ID (numeric like your companies)
@@ -106,4 +106,6 @@ projectSchema.index({ id: 1 }, { unique: true });
 projectSchema.index({ status: 1 });
 projectSchema.index({ startDate: 1 });
 
-module.exports = mongoose.model('Project', projectSchema);
+const Project = mongoose.model('Project', projectSchema);
+
+export default Project;

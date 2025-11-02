@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const fleetTaskSchema = new mongoose.Schema({
   id: {
@@ -89,14 +89,13 @@ const fleetTaskSchema = new mongoose.Schema({
   }
 });
 
-// REMOVED: Geospatial indexes since we're using strings now
-// fleetTaskSchema.index({ pickupLocation: '2dsphere' });
-// fleetTaskSchema.index({ dropLocation: '2dsphere' });
-
 // Update updatedAt before saving
 fleetTaskSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
   next();
 });
 
-module.exports = mongoose.model('FleetTask', fleetTaskSchema, 'fleetTasks');
+// Third argument explicitly sets the collection name
+const FleetTask = mongoose.model('FleetTask', fleetTaskSchema, 'fleetTasks');
+
+export default FleetTask;

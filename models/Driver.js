@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const driverSchema = new mongoose.Schema({
   id: {
@@ -13,7 +13,7 @@ const driverSchema = new mongoose.Schema({
   employeeId: {
     type: Number,
     required: true
-    // REMOVED: unique: true ← This was causing the error
+    // Removed unique constraint to avoid errors
   },
   employeeName: {
     type: String,
@@ -50,4 +50,12 @@ const driverSchema = new mongoose.Schema({
   }
 });
 
-module.exports = mongoose.model('Driver', driverSchema);
+// Update updatedAt before saving
+driverSchema.pre('save', function(next) {
+  this.updatedAt = Date.now();
+  next();
+});
+
+const Driver = mongoose.model('Driver', driverSchema);
+
+export default Driver;

@@ -1,6 +1,7 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const {
+
+import {
   createCompanyUser,
   getCompanyUsers,
   getCompanyUserById,
@@ -9,7 +10,7 @@ const {
   getUsersByCompany,
   getCompaniesByUser,
   getCompanyUserByCompanyAndUser
-} = require('../controllers/companyUserController');
+} from '../controllers/companyUserController.js';
 
 // POST /api/company-users - Create new company user
 router.post('/', createCompanyUser);
@@ -26,13 +27,13 @@ router.put('/:id', updateCompanyUser);
 // DELETE /api/company-users/:id - Delete company user
 router.delete('/:id', deleteCompanyUser);
 
+// GET /api/company-users/company/:companyId/user/:userId - Get specific company user relationship
+router.get('/company/:companyId/user/:userId', getCompanyUserByCompanyAndUser);
+
 // GET /api/company-users/company/:companyId - Get all users for a company
 router.get('/company/:companyId', getUsersByCompany);
 
 // GET /api/company-users/user/:userId - Get all companies for a user
 router.get('/user/:userId', getCompaniesByUser);
 
-// GET /api/company-users/company/:companyId/user/:userId - Get specific company user relationship
-router.get('/company/:companyId/user/:userId', getCompanyUserByCompanyAndUser);
-
-module.exports = router;
+export default router;

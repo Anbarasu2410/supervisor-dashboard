@@ -1,4 +1,5 @@
-const mongoose = require("mongoose");
+// models/CompanyUser.js
+import mongoose from "mongoose";
 
 const companyUserSchema = new mongoose.Schema(
   {
@@ -35,4 +36,4 @@ const companyUserSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model("CompanyUser", companyUserSchema);
+export default mongoose.model("CompanyUser", companyUserSchema);

@@ -1,11 +1,7 @@
 // backend/routes/authRoutes.js
-const express = require('express');
-const { 
-  login, 
-  getProfile, 
-  verifyToken 
-} = require('../controllers/authController');
-const { verifyToken: authVerifyToken } = require('../middleware/authMiddleware');
+import express from 'express';
+import { login, getProfile, verifyToken } from '../controllers/authController.js';
+import { verifyToken as authVerifyToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -13,9 +9,9 @@ const router = express.Router();
 router.post('/login', login);
 
 // GET /api/auth/profile (protected)
-//router.get('/profile', authVerifyToken, getProfile);
+// router.get('/profile', authVerifyToken, getProfile);
 
 // GET /api/auth/verify (protected)
 router.get('/verify', authVerifyToken, verifyToken);
 
-module.exports = router;
+export default router;

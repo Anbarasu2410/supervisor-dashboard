@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const fleetVehicleSchema = new mongoose.Schema({
   id: {
@@ -58,10 +58,13 @@ const fleetVehicleSchema = new mongoose.Schema({
   }
 });
 
-// Update updatedAt before saving
+// Update `updatedAt` before saving
 fleetVehicleSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
   next();
 });
 
-module.exports = mongoose.model('FleetVehicle', fleetVehicleSchema, 'fleetVehicles');
+// Third argument sets the collection name explicitly
+const FleetVehicle = mongoose.model('FleetVehicle', fleetVehicleSchema, 'fleetVehicles');
+
+export default FleetVehicle;
