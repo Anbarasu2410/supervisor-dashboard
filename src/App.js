@@ -1,6 +1,6 @@
 // src/App.jsx
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Login from './components/Login';
 import Tasks from './components/Tasks';
 import TaskDetails from './pages/TaskDetails';
@@ -20,6 +20,24 @@ const ProtectedRoute = ({ children }) => {
   return token ? children : <Navigate to="/login" />;
 };
 
+// Component to get current page title based on route
+const CurrentPageTitle = () => {
+  const location = useLocation();
+  
+  const getPageTitle = (pathname) => {
+    if (pathname === '/driver/tasks' || pathname === '/tasks') return 'My Tasks';
+    if (pathname === '/driver/trip-history') return 'Trip History';
+    if (pathname === '/profile') return 'Profile';
+    if (pathname.includes('/driver/tasks/') && pathname.includes('/pickup')) return 'Pickup Confirmation';
+    if (pathname.includes('/driver/tasks/') && pathname.includes('/drop')) return 'Drop Confirmation';
+    if (pathname.includes('/driver/tasks/') && pathname.includes('/summary')) return 'Trip Summary';
+    if (pathname.includes('/driver/tasks/')) return 'Task Details';
+    return 'My Tasks';
+  };
+
+  return getPageTitle(location.pathname);
+};
+
 // Layout component for protected routes
 const AppLayout = ({ children, sidebarCollapsed, onToggleSidebar, onCloseSidebar }) => {
   return (
@@ -32,7 +50,10 @@ const AppLayout = ({ children, sidebarCollapsed, onToggleSidebar, onCloseSidebar
       
       {/* Main content - Always full width */}
       <Layout className="w-full">
-        <TopHeader onToggleSidebar={onToggleSidebar} />
+        <TopHeader 
+          onToggleSidebar={onToggleSidebar} 
+          currentPage={<CurrentPageTitle />}
+        />
         <Content className="bg-gray-50 min-h-screen w-full">
           {children}
         </Content>
