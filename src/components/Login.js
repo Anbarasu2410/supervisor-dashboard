@@ -58,7 +58,6 @@ const Login = () => {
               style={styles.input}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="anbu@gmail.com"
               required
               disabled={loading}
             />
@@ -72,7 +71,6 @@ const Login = () => {
                 style={styles.passwordInput}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
                 required
                 disabled={loading}
               />
@@ -93,7 +91,7 @@ const Login = () => {
             </div>
           )}
 
-          {/* Divider Line - Minimal margin */}
+          {/* Divider Line */}
           <div style={styles.divider}></div>
 
           <button 
@@ -131,41 +129,41 @@ const styles = {
     fontFamily: "Arial, sans-serif",
   },
   card: {
-    width: 400,
-    padding: 30, // Reduced from 40px
-    borderRadius: 15,
+    width: 380, // Slightly reduced width
+    padding: 25, // Reduced from 30px
+    borderRadius: 12,
     background: "white",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
+    boxShadow: "0 8px 25px rgba(0,0,0,0.15)",
   },
   header: {
     textAlign: "center",
-    marginBottom: 20, // Reduced from 30px
+    marginBottom: 15, // Reduced from 20px
   },
   title: { 
     color: "#333",
-    fontSize: "28px",
+    fontSize: "24px", // Reduced from 28px
     fontWeight: "bold",
     margin: 0,
     padding: 0,
   },
   field: { 
-    marginBottom: 15, // Reduced from 25px
+    marginBottom: 12, // Reduced from 15px
     display: "flex", 
     flexDirection: "column" 
   },
   label: {
-    marginBottom: 5, // Reduced from 8px
+    marginBottom: 4, // Reduced from 5px
     fontWeight: "600",
     color: "#333",
-    fontSize: "14px",
+    fontSize: "13px", // Reduced from 14px
     textTransform: "uppercase",
     letterSpacing: "0.5px",
   },
   input: {
-    padding: "12px", // Reduced from 15px
+    padding: "10px", // Reduced from 12px
     border: "2px solid #e1e1e1",
-    borderRadius: "8px",
-    fontSize: "16px",
+    borderRadius: "6px",
+    fontSize: "15px",
     outline: "none",
     transition: "border-color 0.3s",
     backgroundColor: "#fafafa",
@@ -176,26 +174,25 @@ const styles = {
     alignItems: "center",
   },
   passwordInput: {
-    padding: "12px 45px 12px 12px", // Reduced padding
+    padding: "10px 40px 10px 10px", // Reduced padding
     border: "2px solid #e1e1e1",
-    borderRadius: "8px",
-    fontSize: "16px",
+    borderRadius: "6px",
+    fontSize: "15px",
     width: "100%",
     outline: "none",
     transition: "border-color 0.3s",
     backgroundColor: "#fafafa",
-    letterSpacing: "1px",
   },
   eyeButton: {
     position: "absolute",
-    right: "12px",
+    right: "10px", // Reduced from 12px
     background: "none",
     border: "none",
     cursor: "pointer",
-    fontSize: "16px",
+    fontSize: "15px", // Reduced from 16px
     padding: "0",
-    width: "24px",
-    height: "24px",
+    width: "22px", // Reduced from 24px
+    height: "22px", // Reduced from 24px
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -206,56 +203,56 @@ const styles = {
   divider: {
     height: "1px",
     background: "#e1e1e1",
-    margin: "8px 0", // Significantly reduced from 25px
+    margin: "6px 0", // Reduced from 8px
   },
   button: {
     width: "100%",
-    padding: "12px", // Reduced from 15px
+    padding: "10px", // Reduced from 12px
     backgroundColor: "#007bff",
     color: "#fff",
     border: "none",
-    borderRadius: "8px",
+    borderRadius: "6px",
     cursor: "pointer",
-    fontSize: "16px",
+    fontSize: "15px", // Reduced from 16px
     fontWeight: "bold",
     transition: "background-color 0.3s",
-    marginBottom: "10px", // Reduced from 20px
+    marginBottom: "8px", // Reduced from 10px
   },
   footer: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    fontSize: "14px",
+    fontSize: "13px", // Reduced from 14px
   },
   rememberMe: {
     display: "flex",
     alignItems: "center",
-    gap: "6px", // Reduced from 8px
+    gap: "5px", // Reduced from 6px
     cursor: "pointer",
     color: "#666",
   },
   checkbox: {
     margin: 0,
-    width: "16px",
-    height: "16px",
+    width: "14px", // Reduced from 16px
+    height: "14px", // Reduced from 16px
   },
   rememberText: {
-    fontSize: "14px",
+    fontSize: "13px", // Reduced from 14px
     color: "#666",
   },
   forgotLink: {
-    fontSize: "14px",
+    fontSize: "13px", // Reduced from 14px
     color: "#007bff",
     textDecoration: "none",
     fontWeight: "500",
   },
   error: {
     color: "red", 
-    fontSize: "14px", 
-    padding: "8px", // Reduced from 12px
+    fontSize: "13px", // Reduced from 14px
+    padding: "6px", // Reduced from 8px
     background: "#ffe6e6", 
-    borderRadius: "6px",
-    marginBottom: "5px", // Significantly reduced from 15px
+    borderRadius: "4px",
+    marginBottom: "4px", // Reduced from 5px
     textAlign: "center",
     border: "1px solid #ffcccc",
   },
