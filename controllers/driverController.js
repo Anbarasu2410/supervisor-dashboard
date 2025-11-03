@@ -48,42 +48,69 @@ export const upload = multer({
 // ==============================
 // DRIVER PROFILE APIs
 // ==============================
-
 export const getDriverProfile = async (req, res) => {
   try {
-    const user = req.user;
-    const driverId = Number(user.id || user.userId);
-    const companyId = Number(user.companyId);
+    const { id, userId, companyId, role } = req.user || {};
+    const driverId = Number(id || userId);
+    const compId = Number(companyId);
 
-    const [company, userDetails, employee] = await Promise.all([
-      Company.findOne({ id: companyId }),
+    if (!driverId || !compId) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid user or company information.",
+      });
+    }
+
+    // Fetch company, user, and employee details in parallel for efficiency
+    const [company, user, employee] = await Promise.all([
+      Company.findOne({ id: compId }),
       User.findOne({ id: driverId }),
       Employee.findOne({ id: driverId }),
     ]);
 
-    if (!userDetails)
-      return res.status(404).json({ success: false, message: "User not found" });
-    if (!employee)
-      return res.status(404).json({ success: false, message: "Employee not found" });
-    if (!company)
-      return res.status(404).json({ success: false, message: "Company not found" });
+    if (!company) {
+      return res.status(404).json({
+        success: false,
+        message: `Company with ID ${compId} not found`,
+      });
+    }
 
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User details not found",
+      });
+    }
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: "Employee details not found",
+      });
+    }
+
+    // Construct profile
     const profile = {
-      id: user.id,
-      name: employee.fullName || userDetails.name,
-      email: userDetails.email,
-      phoneNumber: employee.phone || userDetails.phone || "N/A",
+      id: driverId,
+      name: employee.fullName,
+      email: user.email,
+      phoneNumber: employee.phone || user.phone || "N/A",
       companyName: company.name,
-      role: user.role,
+      role,
       photo_url: employee.photo_url || null,
-      createdAt: employee.createdAt || userDetails.createdAt,
-      updatedAt: employee.updatedAt || employee.createdAt || userDetails.updatedAt,
+      createdAt: employee.createdAt || user.createdAt,
+      updatedAt: employee.updatedAt || employee.createdAt || user.updatedAt,
     };
 
-    res.json({ success: true, profile });
+    return res.json({ success: true, profile });
+
   } catch (err) {
-    console.error("❌ Error fetching driver profile:", err);
-    res.status(500).json({ success: false, message: "Server error", error: err.message });
+    console.error("Error fetching driver profile:", err);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching driver profile",
+      error: err.message,
+    });
   }
 };
 
