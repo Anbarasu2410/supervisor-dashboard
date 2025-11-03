@@ -93,7 +93,7 @@ const Login = () => {
             </div>
           )}
 
-          {/* Divider Line */}
+          {/* Divider Line - Minimal margin */}
           <div style={styles.divider}></div>
 
           <button 
@@ -132,14 +132,14 @@ const styles = {
   },
   card: {
     width: 400,
-    padding: 40,
+    padding: 30, // Reduced from 40px
     borderRadius: 15,
     background: "white",
     boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
   },
   header: {
     textAlign: "center",
-    marginBottom: 30,
+    marginBottom: 20, // Reduced from 30px
   },
   title: { 
     color: "#333",
@@ -149,12 +149,12 @@ const styles = {
     padding: 0,
   },
   field: { 
-    marginBottom: 25, 
+    marginBottom: 15, // Reduced from 25px
     display: "flex", 
     flexDirection: "column" 
   },
   label: {
-    marginBottom: 8,
+    marginBottom: 5, // Reduced from 8px
     fontWeight: "600",
     color: "#333",
     fontSize: "14px",
@@ -162,7 +162,7 @@ const styles = {
     letterSpacing: "0.5px",
   },
   input: {
-    padding: "15px",
+    padding: "12px", // Reduced from 15px
     border: "2px solid #e1e1e1",
     borderRadius: "8px",
     fontSize: "16px",
@@ -176,7 +176,7 @@ const styles = {
     alignItems: "center",
   },
   passwordInput: {
-    padding: "15px 50px 15px 15px",
+    padding: "12px 45px 12px 12px", // Reduced padding
     border: "2px solid #e1e1e1",
     borderRadius: "8px",
     fontSize: "16px",
@@ -188,14 +188,14 @@ const styles = {
   },
   eyeButton: {
     position: "absolute",
-    right: "15px",
+    right: "12px",
     background: "none",
     border: "none",
     cursor: "pointer",
-    fontSize: "18px",
+    fontSize: "16px",
     padding: "0",
-    width: "28px",
-    height: "28px",
+    width: "24px",
+    height: "24px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -206,11 +206,11 @@ const styles = {
   divider: {
     height: "1px",
     background: "#e1e1e1",
-    margin: "25px 0",
+    margin: "8px 0", // Significantly reduced from 25px
   },
   button: {
     width: "100%",
-    padding: "15px",
+    padding: "12px", // Reduced from 15px
     backgroundColor: "#007bff",
     color: "#fff",
     border: "none",
@@ -219,7 +219,7 @@ const styles = {
     fontSize: "16px",
     fontWeight: "bold",
     transition: "background-color 0.3s",
-    marginBottom: "20px",
+    marginBottom: "10px", // Reduced from 20px
   },
   footer: {
     display: "flex",
@@ -230,7 +230,7 @@ const styles = {
   rememberMe: {
     display: "flex",
     alignItems: "center",
-    gap: "8px",
+    gap: "6px", // Reduced from 8px
     cursor: "pointer",
     color: "#666",
   },
@@ -252,10 +252,10 @@ const styles = {
   error: {
     color: "red", 
     fontSize: "14px", 
-    padding: "12px", 
+    padding: "8px", // Reduced from 12px
     background: "#ffe6e6", 
     borderRadius: "6px",
-    marginBottom: "15px",
+    marginBottom: "5px", // Significantly reduced from 15px
     textAlign: "center",
     border: "1px solid #ffcccc",
   },
