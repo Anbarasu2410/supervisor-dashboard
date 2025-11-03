@@ -50,7 +50,7 @@ const DriverProfile = () => {
   const [form] = Form.useForm();
 
   const token = localStorage.getItem("token");
-  const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5001";
+  const API_BASE_URL = process.env.REACT_APP_API_URL || "https://smt-erp-driver-app-api.vercel.app";
 
   // Update localStorage with profile data
   const updateLocalStorageUserData = (profileData) => {
