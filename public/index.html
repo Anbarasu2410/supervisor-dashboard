@@ -3,13 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"/>    
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>    
 <meta name="description" content="Driver App" />
    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
 <meta name="theme-color" content="#1976d2" />
 <link rel="apple-touch-icon" href="%PUBLIC_URL%/icons/icon-192x192.png" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="DriverApp" />
 
     <!-- Tailwind CSS CDN -->
@@ -19,35 +17,20 @@
     
     <!-- Custom styles for Ant Design -->
     <style>
-   html, body {
+      html, body {
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%;
-  overflow-x: hidden;
-  overscroll-behavior: none;
-  touch-action: pan-y;
+  overflow-x: hidden; /* ✅ Prevent horizontal scrolling */
+  overscroll-behavior: none; /* ✅ Prevent Safari bounce effect */
+  touch-action: pan-y; /* ✅ Allow only vertical scrolling */
 }
 
-/* Fix header under status bar */
-header, .app-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: calc(60px + env(safe-area-inset-top)); /* 60px header + safe area */
-  padding-top: env(safe-area-inset-top);
-  background-color: #1976d2;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-/* Content below header */
-.main-content {
-  padding-top: calc(60px + env(safe-area-inset-top));
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* Optional: Prevent content overflow */
 }
       .ant-btn-primary {
         background: #1890ff !important;
