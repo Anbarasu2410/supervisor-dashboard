@@ -4,6 +4,7 @@ import api from "../api";
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -23,28 +24,35 @@ const Login = () => {
       localStorage.setItem("user", JSON.stringify(res.data.user));
       
       console.log("🔐 Token stored, redirecting...");
-     
       
       // FIX: Redirect to the correct driver tasks route
       setTimeout(() => {
-       window.location.href = "/driver/tasks";
-        }, 500);
+        window.location.href = "/driver/tasks";
+      }, 500);
       
     } catch (err) {
       console.error("❌ Login error:", err);
-     setError(err.response?.data?.message || "Login failed");
+      setError(err.response?.data?.message || "Login failed");
     } finally {
       setLoading(false);
     }
   };
 
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
   return (
     <div className="login-container" style={styles.container}>
       <div style={styles.card}>
-        <h2 style={styles.title}>🚖 Driver Login</h2>
+        {/* Header Section */}
+        <div style={styles.header}>
+          <h1 style={styles.title}>Driver Login</h1>
+        </div>
+        
         <form onSubmit={handleSubmit}>
           <div style={styles.field}>
-            <label>Email</label>
+            <label style={styles.label}>Email</label>
             <input
               type="email"
               style={styles.input}
@@ -57,30 +65,36 @@ const Login = () => {
           </div>
 
           <div style={styles.field}>
-            <label>Password</label>
-            <input
-              type="password"
-              style={styles.input}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              disabled={loading}
-            />
+            <label style={styles.label}>Password</label>
+            <div style={styles.passwordContainer}>
+              <input
+                type={showPassword ? "text" : "password"}
+                style={styles.passwordInput}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                disabled={loading}
+              />
+              <button
+                type="button"
+                style={styles.eyeButton}
+                onClick={togglePasswordVisibility}
+                disabled={loading}
+              >
+                {showPassword ? "👁️" : "👁️‍🗨️"}
+              </button>
+            </div>
           </div>
 
           {error && (
-            <div style={{ 
-              color: "red", 
-              fontSize: "14px", 
-              padding: "10px", 
-              background: "#ffe6e6", 
-              borderRadius: "4px",
-              marginBottom: "15px"
-            }}>
+            <div style={styles.error}>
               {error}
             </div>
           )}
+
+          {/* Divider Line - Minimal margin */}
+          <div style={styles.divider}></div>
 
           <button 
             type="submit" 
@@ -95,10 +109,11 @@ const Login = () => {
           </button>
 
           <div style={styles.footer}>
-            <label>
-              <input type="checkbox" disabled={loading} /> Remember me
+            <label style={styles.rememberMe}>
+              <input type="checkbox" style={styles.checkbox} disabled={loading} /> 
+              <span style={styles.rememberText}>Remember me</span>
             </label>
-            <a href="#" style={{ fontSize: "13px" }}>Forgot password?</a>
+            <a href="#" style={styles.forgotLink}>Forgot password?</a>
           </div>
         </form>
       </div>
@@ -112,48 +127,137 @@ const styles = {
     height: "100vh",
     alignItems: "center",
     justifyContent: "center",
-    background: "#f0f2f5",
+    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+    fontFamily: "Arial, sans-serif",
   },
   card: {
-    width: 380,
-    padding: 30,
-    borderRadius: 10,
+    width: 400,
+    padding: 30, // Reduced from 40px
+    borderRadius: 15,
     background: "white",
-    boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
+  },
+  header: {
+    textAlign: "center",
+    marginBottom: 20, // Reduced from 30px
   },
   title: { 
-    marginBottom: 20, 
-    textAlign: "center",
-    color: "#333"
+    color: "#333",
+    fontSize: "28px",
+    fontWeight: "bold",
+    margin: 0,
+    padding: 0,
   },
   field: { 
-    marginBottom: 15, 
+    marginBottom: 15, // Reduced from 25px
     display: "flex", 
     flexDirection: "column" 
   },
+  label: {
+    marginBottom: 5, // Reduced from 8px
+    fontWeight: "600",
+    color: "#333",
+    fontSize: "14px",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+  },
   input: {
-    padding: "12px",
-    border: "1px solid #ccc",
-    borderRadius: "6px",
-    fontSize: "15px",
-    marginTop: "5px"
+    padding: "12px", // Reduced from 15px
+    border: "2px solid #e1e1e1",
+    borderRadius: "8px",
+    fontSize: "16px",
+    outline: "none",
+    transition: "border-color 0.3s",
+    backgroundColor: "#fafafa",
+  },
+  passwordContainer: {
+    position: "relative",
+    display: "flex",
+    alignItems: "center",
+  },
+  passwordInput: {
+    padding: "12px 45px 12px 12px", // Reduced padding
+    border: "2px solid #e1e1e1",
+    borderRadius: "8px",
+    fontSize: "16px",
+    width: "100%",
+    outline: "none",
+    transition: "border-color 0.3s",
+    backgroundColor: "#fafafa",
+    letterSpacing: "1px",
+  },
+  eyeButton: {
+    position: "absolute",
+    right: "12px",
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    fontSize: "16px",
+    padding: "0",
+    width: "24px",
+    height: "24px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    opacity: 0.6,
+    transition: "opacity 0.3s",
+    borderRadius: "50%",
+  },
+  divider: {
+    height: "1px",
+    background: "#e1e1e1",
+    margin: "8px 0", // Significantly reduced from 25px
   },
   button: {
     width: "100%",
-    padding: "12px",
+    padding: "12px", // Reduced from 15px
     backgroundColor: "#007bff",
     color: "#fff",
     border: "none",
-    borderRadius: "6px",
+    borderRadius: "8px",
     cursor: "pointer",
     fontSize: "16px",
-    fontWeight: "bold"
+    fontWeight: "bold",
+    transition: "background-color 0.3s",
+    marginBottom: "10px", // Reduced from 20px
   },
   footer: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 15,
+    fontSize: "14px",
+  },
+  rememberMe: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px", // Reduced from 8px
+    cursor: "pointer",
+    color: "#666",
+  },
+  checkbox: {
+    margin: 0,
+    width: "16px",
+    height: "16px",
+  },
+  rememberText: {
+    fontSize: "14px",
+    color: "#666",
+  },
+  forgotLink: {
+    fontSize: "14px",
+    color: "#007bff",
+    textDecoration: "none",
+    fontWeight: "500",
+  },
+  error: {
+    color: "red", 
+    fontSize: "14px", 
+    padding: "8px", // Reduced from 12px
+    background: "#ffe6e6", 
+    borderRadius: "6px",
+    marginBottom: "5px", // Significantly reduced from 15px
+    textAlign: "center",
+    border: "1px solid #ffcccc",
   },
 };
 
