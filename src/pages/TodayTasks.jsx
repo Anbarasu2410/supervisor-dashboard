@@ -12,7 +12,8 @@ import {
   Badge,
   Row,
   Col,
-  Statistic
+  Statistic,
+  Avatar
 } from 'antd';
 import { 
   ClockCircleOutlined, 
@@ -28,7 +29,9 @@ import {
   ProjectOutlined,
   ScheduleOutlined,
   SafetyCertificateOutlined,
-  ThunderboltOutlined
+  ThunderboltOutlined,
+  UserOutlined,
+  PhoneOutlined
 } from '@ant-design/icons';
 import api from '../api';
 import dayjs from 'dayjs';
@@ -40,10 +43,44 @@ const TodayTasks = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [driverInfo, setDriverInfo] = useState({}); // Store driver info by employee id
 
   useEffect(() => {
     fetchTodaysTasks();
   }, []);
+
+  const fetchDriverInfo = async (employeeId) => {
+    try {
+      // If we already have this driver's info, don't fetch again
+      if (driverInfo[employeeId]) {
+        return driverInfo[employeeId];
+      }
+
+      console.log(`🔄 Fetching driver info for employee ID: ${employeeId}`);
+      const response = await api.get(`/employees/${employeeId}`);
+      
+      if (response.data && response.data.success) {
+        const driverData = response.data.data;
+        const newDriverInfo = {
+          ...driverInfo,
+          [employeeId]: {
+            fullName: driverData.fullName || 'Unknown Driver',
+            phone: driverData.phone || 'Not available',
+            photo_url: driverData.photo_url || null
+          }
+        };
+        setDriverInfo(newDriverInfo);
+        return newDriverInfo[employeeId];
+      }
+    } catch (err) {
+      console.error(`❌ Error fetching driver info for ${employeeId}:`, err);
+      return {
+        fullName: 'Unknown Driver',
+        phone: 'Not available',
+        photo_url: null
+      };
+    }
+  };
 
   const fetchTodaysTasks = async () => {
     try {
@@ -74,6 +111,19 @@ const TodayTasks = () => {
 
       if (tasksData && Array.isArray(tasksData)) {
         setTasks(tasksData);
+        
+        // Fetch driver info for all unique employee IDs in tasks
+        const uniqueEmployeeIds = [...new Set(tasksData
+          .map(task => task.driver_id || task.driverId || task.employee_id || task.employeeId)
+          .filter(Boolean)
+        )];
+        
+        console.log('👥 Fetching driver info for employee IDs:', uniqueEmployeeIds);
+        
+        // Fetch driver info for all unique IDs
+        await Promise.all(
+          uniqueEmployeeIds.map(employeeId => fetchDriverInfo(employeeId))
+        );
       } else {
         setError('No tasks data received from server');
         setTasks([]);
@@ -118,13 +168,24 @@ const TodayTasks = () => {
   };
 
   const getTaskDetails = (task) => {
+    const employeeId = task.driver_id || task.driverId || task.employee_id || task.employeeId;
+    const driverDetails = driverInfo[employeeId] || {
+      fullName: 'Unknown Driver',
+      phone: 'Not available',
+      photo_url: null
+    };
+
     return {
       projectName: task.project_name || task.projectName || task.project?.name || 'Unnamed Trip',
       vehicleNumber: task.vehicle_number || task.vehicleNumber || task.vehicle?.number || 'Not assigned',
       passengers: task.passengers || task.passenger_count || task.employee_count || 0,
       pickupLocation: task.pickup_location || task.pickupLocation || task.pickup_address || 'Not specified',
       dropLocation: task.drop_location || task.dropLocation || task.drop_address || 'Not specified',
-      taskId: task.task_id || task.id || task._id || 'unknown'
+      taskId: task.task_id || task.id || task._id || 'unknown',
+      driverName: driverDetails.fullName,
+      driverPhone: driverDetails.phone,
+      driverPhoto: driverDetails.photo_url,
+      employeeId: employeeId
     };
   };
 
@@ -305,7 +366,8 @@ const TodayTasks = () => {
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                            {/* Vehicle & Passengers Info */}
                             <div className="space-y-3">
                               <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                                 <CarOutlined className="text-gray-600 text-lg" />
@@ -323,6 +385,29 @@ const TodayTasks = () => {
                               </div>
                             </div>
 
+                            {/* Driver Info */}
+                            <div className="space-y-3">
+                              <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                                <Avatar 
+                                  src={details.driverPhoto} 
+                                  icon={<UserOutlined />}
+                                  className="bg-purple-100 text-purple-600"
+                                />
+                                <div>
+                                  <Text className="text-purple-700 text-sm font-medium block">Driver</Text>
+                                  <Text strong className="text-gray-800">{details.driverName}</Text>
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                                <PhoneOutlined className="text-purple-600 text-lg" />
+                                <div>
+                                  <Text className="text-purple-700 text-sm font-medium block">Driver Phone</Text>
+                                  <Text strong className="text-gray-800">{details.driverPhone}</Text>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Location Info */}
                             <div className="space-y-3">
                               <div className="flex items-start space-x-3 p-3 bg-green-50 rounded-lg border border-green-200">
                                 <EnvironmentOutlined className="text-green-600 text-lg mt-1" />

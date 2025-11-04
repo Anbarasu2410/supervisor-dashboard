@@ -12,7 +12,8 @@ import {
   Alert,
   Typography,
   Badge,
-  Space
+  Space,
+  Avatar
 } from 'antd';
 import { 
   CheckCircleOutlined, 
@@ -34,7 +35,9 @@ import {
   UserSwitchOutlined,
   ProjectOutlined,
   IdcardOutlined,
-  ThunderboltOutlined
+  ThunderboltOutlined,
+  UserOutlined,
+  PhoneOutlined
 } from '@ant-design/icons';
 import api from '../api';
 
@@ -125,19 +128,25 @@ const Tasks = () => {
 
   const getTaskTime = (task) => {
     return {
-      start: task.start_time || task.startTime || task.scheduled_start || 'N/A',
-      end: task.end_time || task.endTime || task.scheduled_end || 'N/A'
+      start: task.startTime || task.start_time || task.scheduledStart || 'N/A',
+      end: task.endTime || task.end_time || task.scheduledEnd || 'N/A'
     };
   };
 
   const getTaskDetails = (task) => {
     return {
-      projectName: task.project_name || task.projectName || task.project?.name || 'Unnamed Task',
-      vehicleNumber: task.vehicle_number || task.vehicleNumber || task.vehicle?.number || 'N/A',
-      passengers: task.passengers || task.passenger_count || task.employee_count || 0,
-      pickupLocation: task.pickup_location || task.pickupLocation || task.pickup_address || 'Not specified',
-      dropLocation: task.drop_location || task.dropLocation || task.drop_address || 'Not specified',
-      taskId: task.task_id || task.id || task._id || 'unknown'
+      projectName: task.projectName || task.project_name || task.project?.name || 'Unnamed Task',
+      vehicleNumber: task.vehicleNumber || task.vehicle_number || task.vehicle?.number || 'N/A',
+      passengers: task.passengers || task.passengerCount || task.employeeCount || 0,
+      pickupLocation: task.pickupLocation || task.pickup_location || task.pickupAddress || 'Not specified',
+      dropLocation: task.dropLocation || task.drop_location || task.dropAddress || 'Not specified',
+      taskId: task.taskId || task.id || task._id || 'unknown',
+      // Driver information from backend
+      driverName: task.driverName || task.driver_name || 'Unknown Driver',
+      driverPhone: task.driverPhone || task.driver_phone || 'Not available',
+      driverPhoto: task.driverPhoto || task.driver_photo || null,
+      employeeId: task.employeeId || task.employee_id || null,
+      driverId: task.driverId || task.driver_id || 'N/A'
     };
   };
 
@@ -162,7 +171,7 @@ const Tasks = () => {
 
   return (
     <div className="bg-gray-50 min-h-screen p-4 pt-6">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         {/* Consistent Header */}
         <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6">
@@ -334,47 +343,70 @@ const Tasks = () => {
                             </Title>
                           </div>
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <Space direction="vertical" size="middle" className="w-full">
+                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                            {/* Vehicle & Passengers Info */}
+                            <div className="space-y-3">
                               <div className="flex items-center p-3 bg-gray-50 rounded-lg">
-                                <IdcardOutlined className="text-blue-500 mr-3 text-lg" />
+                                <CarOutlined className="text-blue-500 mr-3 text-lg" />
                                 <div>
-                                  <Text strong className="text-gray-700 block">Vehicle Number</Text>
-                                  <Text className="text-gray-900 font-semibold">{details.vehicleNumber}</Text>
+                                  <Text strong className="text-gray-700 block text-sm">Vehicle Number</Text>
+                                  <Text className="text-gray-900 font-semibold text-sm">{details.vehicleNumber}</Text>
                                 </div>
                               </div>
                               
                               <div className="flex items-center p-3 bg-gray-50 rounded-lg">
-                                <UserSwitchOutlined className="text-green-500 mr-3 text-lg" />
+                                <TeamOutlined className="text-green-500 mr-3 text-lg" />
                                 <div>
-                                  <Text strong className="text-gray-700 block">Passengers</Text>
-                                  <Text className="text-gray-900 font-semibold">{details.passengers} people</Text>
+                                  <Text strong className="text-gray-700 block text-sm">Passengers</Text>
+                                  <Text className="text-gray-900 font-semibold text-sm">{details.passengers} people</Text>
                                 </div>
                               </div>
-                            </Space>
-                            
-                            <Space direction="vertical" size="middle" className="w-full">
-                              <div className="flex items-start p-3 bg-green-50 rounded-lg">
+                            </div>
+
+                            {/* Driver Info - Professional Format */}
+                            <div className="space-y-3">
+                              <div className="flex items-center p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                <UserOutlined className="text-blue-600 mr-3 text-lg" />
+                                <div>
+                                  <Text strong className="text-blue-700 block text-sm">Driver</Text>
+                                  <Text className="text-gray-900 font-semibold text-sm">
+                                    {details.driverName} {details.driverId && details.driverId !== 'N/A' && `(${details.driverId})`}
+                                  </Text>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center p-3 bg-green-50 rounded-lg border border-green-200">
+                                <PhoneOutlined className="text-green-600 mr-3 text-lg" />
+                                <div>
+                                  <Text strong className="text-green-700 block text-sm">Driver Contact</Text>
+                                  <Text className="text-gray-900 font-semibold text-sm">{details.driverPhone}</Text>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Location Info */}
+                            <div className="space-y-3">
+                              <div className="flex items-start p-3 bg-green-50 rounded-lg border border-green-200">
                                 <EnvironmentOutlined className="text-green-600 mr-3 mt-1 text-lg" />
                                 <div>
-                                  <Text strong className="text-green-700 block">Pickup Location</Text>
-                                  <Text className="text-gray-700">{details.pickupLocation}</Text>
+                                  <Text strong className="text-green-700 block text-sm">Pickup Location</Text>
+                                  <Text className="text-gray-700 text-sm">{details.pickupLocation}</Text>
                                 </div>
                               </div>
                               
-                              <div className="flex items-start p-3 bg-orange-50 rounded-lg">
+                              <div className="flex items-start p-3 bg-orange-50 rounded-lg border border-orange-200">
                                 <EnvironmentOutlined className="text-orange-600 mr-3 mt-1 text-lg" />
                                 <div>
-                                  <Text strong className="text-orange-700 block">Drop-off Location</Text>
-                                  <Text className="text-gray-700">{details.dropLocation}</Text>
+                                  <Text strong className="text-orange-700 block text-sm">Drop-off Location</Text>
+                                  <Text className="text-gray-700 text-sm">{details.dropLocation}</Text>
                                 </div>
                               </div>
-                            </Space>
+                            </div>
                           </div>
                         </div>
 
                         {/* Right Section - Action Button */}
-                        <div className="lg:pl-6 lg:border-l lg:border-gray-200 flex items-center">
+                        <div className="lg:pl-6 lg:border-l lg:border-gray-200 flex items-center justify-center lg:justify-start mt-4 lg:mt-0">
                           <Button
                             type="primary"
                             icon={<EyeOutlined />}
