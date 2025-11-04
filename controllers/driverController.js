@@ -97,7 +97,7 @@ export const getDriverProfile = async (req, res) => {
       phoneNumber: employee.phone || user.phone || "N/A",
       companyName: company.name,
       role,
-      photo_url: employee.photo_url || null,
+      photoUrl: employee.photoUrl || employee.photo_url || null,
       createdAt: employee.createdAt || user.createdAt,
       updatedAt: employee.updatedAt || employee.createdAt || user.updatedAt,
     };
@@ -160,11 +160,11 @@ export const uploadDriverPhoto = async (req, res) => {
     if (!req.file)
       return res.status(400).json({ success: false, message: "No photo file uploaded" });
 
-    const photo_url = `/uploads/drivers/${req.file.filename}`;
+    const photoUrl = `/uploads/drivers/${req.file.filename}`;
 
     await Employee.updateOne(
       { id: driverId },
-      { $set: { photo_url, updatedAt: new Date() } }
+      { $set: { photoUrl, updatedAt: new Date() } }
     );
 
     const [employee, company, user] = await Promise.all([
@@ -180,14 +180,14 @@ export const uploadDriverPhoto = async (req, res) => {
       phoneNumber: employee.phone || "N/A",
       companyName: company?.name || "N/A",
       role: "driver",
-      photo_url,
+      photoUrl,
     };
 
     res.json({
       success: true,
       message: "Profile photo updated successfully",
       driver: updatedProfile,
-      photo_url,
+      photoUrl,
     });
   } catch (err) {
     console.error("❌ Error uploading photo:", err);
@@ -199,7 +199,6 @@ export const uploadDriverPhoto = async (req, res) => {
 // ==============================
 // DRIVER TASK APIs
 // ==============================
-
 export const getTodaysTasks = async (req, res) => {
   try {
     const driverId = Number(req.user.id || req.user.userId);
@@ -236,13 +235,14 @@ export const getTodaysTasks = async (req, res) => {
     const vehicleIds = [...new Set(tasks.map(t => t.vehicleId))];
     const taskIds = tasks.map(t => t.id);
 
-    const [projects, vehicles, passengerCounts] = await Promise.all([
+    const [projects, vehicles, passengerCounts, driver] = await Promise.all([
       Project.find({ id: { $in: projectIds } }).lean(),
       FleetVehicle.find({ id: { $in: vehicleIds } }).lean(),
       FleetTaskPassenger.aggregate([
         { $match: { fleetTaskId: { $in: taskIds } } },
         { $group: { _id: "$fleetTaskId", count: { $sum: 1 } } }
-      ])
+      ]),
+      Employee.findOne({ id: driverId, companyId }).lean() // Fetch driver info
     ]);
 
     const projectMap = Object.fromEntries(projects.map(p => [p.id, p]));
@@ -259,15 +259,20 @@ export const getTodaysTasks = async (req, res) => {
     };
 
     const taskList = tasks.map(task => ({
-      task_id: task.id,
-      project_name: projectMap[task.projectId]?.name || 'Unknown Project',
-      start_time: formatTime(task.plannedPickupTime),
-      end_time: formatTime(task.plannedDropTime),
-      vehicle_number: vehicleMap[task.vehicleId]?.registrationNo || 'N/A',
+      taskId: task.id,
+      projectName: projectMap[task.projectId]?.name || 'Unknown Project',
+      startTime: formatTime(task.plannedPickupTime),
+      endTime: formatTime(task.plannedDropTime),
+      vehicleNumber: vehicleMap[task.vehicleId]?.registrationNo || 'N/A',
       passengers: passengerCountMap[task.id] || 0,
       status: task.status,
-      pickup_location: task.pickupAddress || task.pickupLocation || 'Location not specified',
-      drop_location: task.dropAddress || task.dropLocation || 'Location not specified'
+      pickupLocation: task.pickupAddress || task.pickupLocation || 'Location not specified',
+      dropLocation: task.dropAddress || task.dropLocation || 'Location not specified',
+      // Driver information
+      driverName: driver?.fullName || 'Unknown Driver',
+      driverPhone: driver?.phone || 'Not available',
+      driverPhoto: driver?.photoUrl || driver?.photo_url || null,
+      employeeId: driver?.id || null
     }));
 
     res.json({
@@ -343,17 +348,17 @@ export const getTripHistory = async (req, res) => {
     const passengerCountMap = Object.fromEntries(passengerCounts.map(p => [p._id, p.count]));
 
     const tripHistory = tasks.map(task => ({
-      task_id: task.id,
-      project_name: projectMap[task.projectId]?.name || 'Unknown Project',
-      start_time: task.plannedPickupTime,
-      end_time: task.plannedDropTime,
-      actual_start_time: task.actualStartTime,
-      actual_end_time: task.actualEndTime,
-      vehicle_number: vehicleMap[task.vehicleId]?.registrationNo || 'N/A',
+      taskId: task.id,
+      projectName: projectMap[task.projectId]?.name || 'Unknown Project',
+      startTime: task.plannedPickupTime,
+      endTime: task.plannedDropTime,
+      actualStartTime: task.actualStartTime,
+      actualEndTime: task.actualEndTime,
+      vehicleNumber: vehicleMap[task.vehicleId]?.registrationNo || 'N/A',
       passengers: passengerCountMap[task.id] || 0,
       status: task.status,
-      pickup_location: task.pickupAddress || task.pickupLocation || 'Location not specified',
-      drop_location: task.dropAddress || task.dropLocation || 'Location not specified',
+      pickupLocation: task.pickupAddress || task.pickupLocation || 'Location not specified',
+      dropLocation: task.dropAddress || task.dropLocation || 'Location not specified',
       taskDate: task.taskDate
     }));
 
@@ -417,7 +422,7 @@ export const getTaskDetails = async (req, res) => {
     const passengers = await FleetTaskPassenger.find({ 
       fleetTaskId: task.id 
     })
-      .select("id name pickup_point pickupStatus dropStatus")
+      .select("id name pickupPoint pickupStatus dropStatus")
       .lean();
 
     console.log(`✅ Found ${passengers.length} passengers`);
@@ -431,26 +436,26 @@ export const getTaskDetails = async (req, res) => {
     const response = {
       _id: task._id,
       id: task.id,
-      project_name: project?.name || 'Unknown Project',
-      vehicle_no: vehicle?.registrationNo || 'N/A',
-      start_time: task.plannedPickupTime,
-      end_time: task.plannedDropTime,
-      actual_start_time: task.actualStartTime,
-      actual_end_time: task.actualEndTime,
+      projectName: project?.name || 'Unknown Project',
+      vehicleNo: vehicle?.registrationNo || 'N/A',
+      startTime: task.plannedPickupTime,
+      endTime: task.plannedDropTime,
+      actualStartTime: task.actualStartTime,
+      actualEndTime: task.actualEndTime,
       passengers: passengers.map(p => ({
         id: p.id,
         name: p.name,
-        pickup_point: p.pickup_point,
-        pickup_status: p.pickupStatus || 'pending',
-        drop_status: p.dropStatus || 'pending'
+        pickupPoint: p.pickupPoint,
+        pickupStatus: p.pickupStatus || 'pending',
+        dropStatus: p.dropStatus || 'pending'
       })),
       status: task.status,
-      pickup_location: task.pickupAddress || task.pickupLocation || 'Location not specified',
-      drop_location: task.dropAddress || task.dropLocation || 'Location not specified',
-      expected_passengers: task.expectedPassengers || passengers.length
+      pickupLocation: task.pickupAddress || task.pickupLocation || 'Location not specified',
+      dropLocation: task.dropAddress || task.dropLocation || 'Location not specified',
+      expectedPassengers: task.expectedPassengers || passengers.length
     };
 
-    console.log(`✅ Task details prepared: ${response.project_name} with ${response.passengers.length} passengers`);
+    console.log(`✅ Task details prepared: ${response.projectName} with ${response.passengers.length} passengers`);
     return res.json(response);
 
   } catch (err) {
@@ -548,21 +553,21 @@ export const confirmPickup = async (req, res) => {
       task: {
         _id: updatedTask._id,
         id: updatedTask.id,
-        project_name: project?.name || 'Unknown Project',
-        vehicle_no: vehicle?.registrationNo || 'N/A',
-        start_time: updatedTask.plannedPickupTime,
-        end_time: updatedTask.plannedDropTime,
-        actual_start_time: updatedTask.actualStartTime,
+        projectName: project?.name || 'Unknown Project',
+        vehicleNo: vehicle?.registrationNo || 'N/A',
+        startTime: updatedTask.plannedPickupTime,
+        endTime: updatedTask.plannedDropTime,
+        actualStartTime: updatedTask.actualStartTime,
         status: updatedTask.status,
-        pickup_location: updatedTask.pickupAddress || updatedTask.pickupLocation,
-        drop_location: updatedTask.dropAddress || updatedTask.dropLocation
+        pickupLocation: updatedTask.pickupAddress || updatedTask.pickupLocation,
+        dropLocation: updatedTask.dropAddress || updatedTask.dropLocation
       },
-      updated_passengers: updatedPassengers.map(p => ({
+      updatedPassengers: updatedPassengers.map(p => ({
         id: p.id,
         name: p.name,
-        pickup_point: p.pickup_point,
-        pickup_status: p.pickupStatus || 'pending',
-        drop_status: p.dropStatus || 'pending'
+        pickupPoint: p.pickupPoint,
+        pickupStatus: p.pickupStatus || 'pending',
+        dropStatus: p.dropStatus || 'pending'
       }))
     };
 
@@ -665,22 +670,22 @@ export const confirmDrop = async (req, res) => {
       task: {
         _id: updatedTask._id,
         id: updatedTask.id,
-        project_name: project?.name || 'Unknown Project',
-        vehicle_no: vehicle?.registrationNo || 'N/A',
-        start_time: updatedTask.plannedPickupTime,
-        end_time: updatedTask.plannedDropTime,
-        actual_start_time: updatedTask.actualStartTime,
-        actual_end_time: updatedTask.actualEndTime,
+        projectName: project?.name || 'Unknown Project',
+        vehicleNo: vehicle?.registrationNo || 'N/A',
+        startTime: updatedTask.plannedPickupTime,
+        endTime: updatedTask.plannedDropTime,
+        actualStartTime: updatedTask.actualStartTime,
+        actualEndTime: updatedTask.actualEndTime,
         status: updatedTask.status,
-        pickup_location: updatedTask.pickupAddress || updatedTask.pickupLocation,
-        drop_location: updatedTask.dropAddress || updatedTask.dropLocation
+        pickupLocation: updatedTask.pickupAddress || updatedTask.pickupLocation,
+        dropLocation: updatedTask.dropAddress || updatedTask.dropLocation
       },
-      updated_passengers: updatedPassengers.map(p => ({
+      updatedPassengers: updatedPassengers.map(p => ({
         id: p.id,
         name: p.name,
-        pickup_point: p.pickup_point,
-        pickup_status: p.pickupStatus || 'pending',
-        drop_status: p.dropStatus || 'pending'
+        pickupPoint: p.pickupPoint,
+        pickupStatus: p.pickupStatus || 'pending',
+        dropStatus: p.dropStatus || 'pending'
       }))
     };
 
@@ -713,6 +718,7 @@ export const getTripSummary = async (req, res) => {
 
     const numericTaskId = Number(taskId);
 
+    // 🧭 Find the Fleet Task assigned to this driver
     const task = await FleetTask.findOne({
       id: numericTaskId,
       driverId: driverId,
@@ -726,12 +732,19 @@ export const getTripSummary = async (req, res) => {
       });
     }
 
-    console.log(`📌 Fetching driver details for ID: ${driverId}`);
-    const driver = await User.findOne({ id: driverId }).lean();
-    console.log(`✅ Driver: ${driver?.name || 'Not found'}`);
+    console.log(`📌 Fetching driver details for driverId: ${driverId}`);
 
-    const passengers = await FleetTaskPassenger.find({ 
-      fleetTaskId: numericTaskId 
+    // ✅ Get driver name from Employee collection using 'id' (not userId)
+    let employee = await Employee.findOne({ id: driverId }).lean();
+    let driverName = employee?.fullName;
+
+    console.log("employees:", employee);
+
+    console.log(`✅ Driver Name: ${driverName}`);
+
+    // 🧾 Get passenger stats
+    const passengers = await FleetTaskPassenger.find({
+      fleetTaskId: numericTaskId
     }).lean();
 
     const totalPassengers = passengers.length;
@@ -741,17 +754,16 @@ export const getTripSummary = async (req, res) => {
     const missedDrops = passengers.filter(p => p.dropStatus === 'missed').length;
     const totalMissed = missedPickups + missedDrops;
 
+    // 🕒 Duration calculation
     let durationMinutes = 0;
     if (task.actualStartTime && task.actualEndTime) {
       const start = new Date(task.actualStartTime);
       const end = new Date(task.actualEndTime);
-      const durationMs = end - start;
-      durationMinutes = Math.ceil(durationMs / (1000 * 60));
+      durationMinutes = Math.ceil((end - start) / (1000 * 60));
     } else if (task.plannedPickupTime && task.plannedDropTime) {
       const start = new Date(task.plannedPickupTime);
       const end = new Date(task.plannedDropTime);
-      const durationMs = end - start;
-      durationMinutes = Math.ceil(durationMs / (1000 * 60));
+      durationMinutes = Math.ceil((end - start) / (1000 * 60));
     }
 
     const formatDate = (date) => {
@@ -765,43 +777,40 @@ export const getTripSummary = async (req, res) => {
 
     console.log(`⏱️ Duration calculation: ${durationMinutes} minutes`);
 
+    // 🔗 Fetch related project & vehicle
     const [project, vehicle] = await Promise.all([
       Project.findOne({ id: task.projectId }).lean(),
       FleetVehicle.findOne({ id: task.vehicleId }).lean()
     ]);
 
+    // 🧩 Prepare Summary Object
     const summary = {
       _id: task._id,
       id: task.id,
-      project_name: project?.name || 'Unknown Project',
-      vehicle_no: vehicle?.registrationNo || 'N/A',
-      driver_name: driver?.name || 'Unknown Driver',
-      driver_id: driverId,
-      total_passengers: totalPassengers,
-      picked_up: pickedUp,
+      projectName: project?.name || 'Unknown Project',
+      vehicleNo: vehicle?.registrationNo || 'N/A',
+      driverName: driverName, // ✅ from Employee collection
+      driverId: driverId,
+      totalPassengers: totalPassengers,
+      pickedUp: pickedUp,
       dropped: dropped,
       missed: totalMissed,
-      duration_minutes: durationMinutes,
-      start_time: task.plannedPickupTime,
-      end_time: task.plannedDropTime,
-      actual_start_time: task.actualStartTime,
-      actual_end_time: task.actualEndTime,
+      durationMinutes: durationMinutes,
+      startTime: task.plannedPickupTime,
+      endTime: task.plannedDropTime,
+      actualStartTime: task.actualStartTime,
+      actualEndTime: task.actualEndTime,
       status: task.status,
-      pickup_location: task.pickupAddress || task.pickupLocation || 'Location not specified',
-      drop_location: task.dropAddress || task.dropLocation || 'Location not specified',
-      task_date: task.taskDate,
-      formatted_date: formatDate(task.taskDate),
-      pickup_confirmed_at: task.actualStartTime,
-      drop_confirmed_at: task.actualEndTime
+      pickupLocation: task.pickupAddress || task.pickupLocation || 'Location not specified',
+      dropLocation: task.dropAddress || task.dropLocation || 'Location not specified',
+      taskDate: task.taskDate,
+      formattedDate: formatDate(task.taskDate),
+      pickupConfirmedAt: task.actualStartTime,
+      dropConfirmedAt: task.actualEndTime
     };
 
     console.log(`✅ Trip summary prepared for task ${taskId}`);
-    console.log(`📊 Stats: ${pickedUp}/${totalPassengers} picked up, ${dropped}/${totalPassengers} dropped, ${durationMinutes} mins`);
-    console.log(`👨‍✈️ Driver: ${driver?.name}`);
-    console.log(`📅 Date: ${formatDate(task.taskDate)}`);
-    console.log(`🕐 Planned: ${task.plannedPickupTime} to ${task.plannedDropTime}`);
-    console.log(`🕐 Actual: ${task.actualStartTime} to ${task.actualEndTime}`);
-
+    console.log(`👨‍✈️ Driver: ${driverName}`);
     res.json(summary);
 
   } catch (err) {
