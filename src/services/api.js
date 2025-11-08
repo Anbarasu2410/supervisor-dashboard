@@ -1,7 +1,11 @@
-// src/services/api.js
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://smt-erp-driver-app-api.vercel.app/api';
+// Strictly use .env variable
+const API_BASE_URL = process.env.REACT_APP_API_URL;
+
+if (!API_BASE_URL) {
+  console.error('❌ REACT_APP_API_URL is not set in your .env file.');
+}
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -10,7 +14,7 @@ const api = axios.create({
   },
 });
 
-// Add token to requests automatically
+// Add token automatically to each request
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -19,9 +23,7 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 // Handle token expiration

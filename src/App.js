@@ -1,6 +1,7 @@
 // src/App.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
 import Login from './components/Login';
 import Tasks from './components/Tasks';
 import TaskDetails from './pages/TaskDetails';
@@ -9,6 +10,8 @@ import DropConfirmation from './pages/DropConfirmation';
 import TripSummary from './pages/TripSummary';
 import TripHistory from './pages/TripHistory';
 import DriverProfile from './pages/DriverProfile';
+
+import TodayTrip from './pages/worker/TodayTrip';
 import TopHeader from './components/TopHeader';
 import SideNav from './components/SideNav';
 import { Layout } from 'antd';
@@ -17,16 +20,17 @@ const { Content } = Layout;
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
-  return token ? children : <Navigate to="/login" />;
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  return token && user?.role ? children : <Navigate to="/login" />;
 };
 
-// Component to get current page title based on route
 const CurrentPageTitle = () => {
   const location = useLocation();
   
   const getPageTitle = (pathname) => {
     if (pathname === '/driver/tasks' || pathname === '/tasks') return 'My Tasks';
     if (pathname === '/driver/trip-history') return 'Trip History';
+    if (pathname === '/worker/today-trip') return "Today's Trip";
     if (pathname === '/profile') return 'Profile';
     if (pathname.includes('/driver/tasks/') && pathname.includes('/pickup')) return 'Pickup Confirmation';
     if (pathname.includes('/driver/tasks/') && pathname.includes('/drop')) return 'Drop Confirmation';
@@ -38,28 +42,35 @@ const CurrentPageTitle = () => {
   return getPageTitle(location.pathname);
 };
 
-// Layout component for protected routes
 const AppLayout = ({ children, sidebarCollapsed, onToggleSidebar, onCloseSidebar }) => {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  }, []);
+
   return (
     <Layout className="min-h-screen relative">
-      {/* Sidebar - Fixed position, overlays content */}
       <SideNav 
         collapsed={sidebarCollapsed} 
         onClose={onCloseSidebar}
+        user={user}
       />
       
-      {/* Main content - Always full width */}
       <Layout className="w-full">
         <TopHeader 
           onToggleSidebar={onToggleSidebar} 
           currentPage={<CurrentPageTitle />}
+          user={user}
         />
         <Content className="bg-gray-50 min-h-screen w-full main-content">
           {children}
         </Content>
       </Layout>
       
-      {/* Overlay when sidebar is open - for mobile */}
       {!sidebarCollapsed && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
@@ -88,22 +99,7 @@ function App() {
           {/* Public route */}
           <Route path="/login" element={<Login />} />
           
-          {/* Protected routes */}
-          <Route 
-            path="/tasks" 
-            element={
-              <ProtectedRoute>
-                <AppLayout 
-                  sidebarCollapsed={sidebarCollapsed}
-                  onToggleSidebar={handleToggleSidebar}
-                  onCloseSidebar={handleCloseSidebar}
-                >
-                  <Tasks />
-                </AppLayout>
-              </ProtectedRoute>
-            } 
-          />
-          
+          {/* Driver Routes */}
           <Route 
             path="/driver/tasks" 
             element={
@@ -193,7 +189,25 @@ function App() {
               </ProtectedRoute>
             } 
           />
+
+          {/* Worker Routes */}
+          <Route 
+            path="/worker/today-trip" 
+            element={
+              <ProtectedRoute>
+                <AppLayout 
+                  sidebarCollapsed={sidebarCollapsed}
+                  onToggleSidebar={handleToggleSidebar}
+                  onCloseSidebar={handleCloseSidebar}
+                >
+                  <TodayTrip />
+                </AppLayout>
+              </ProtectedRoute>
+            } 
+          />
+         // 
           
+          {/* Common Routes */}
           <Route 
             path="/profile" 
             element={
@@ -209,13 +223,29 @@ function App() {
             } 
           />
 
-          {/* Default redirects */}
-          <Route path="/" element={<Navigate to="/driver/tasks" replace />} />
-          <Route path="*" element={<Navigate to="/driver/tasks" replace />} />
+          {/* Default redirects based on role */}
+          <Route path="/" element={<NavigateToRoleBasedRoute />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
     </Router>
   );
 }
+
+// Component to handle role-based default routing
+const NavigateToRoleBasedRoute = () => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  
+  switch(user?.role) {
+    case 'driver':
+      return <Navigate to="/driver/tasks" replace />;
+    case 'worker':
+      return <Navigate to="/worker/today-trip" replace />;
+    case 'admin':
+      return <Navigate to="/admin/dashboard" replace />;
+    default:
+      return <Navigate to="/login" replace />;
+  }
+};
 
 export default App;

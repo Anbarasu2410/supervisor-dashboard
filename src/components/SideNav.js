@@ -8,35 +8,60 @@ import {
   HistoryOutlined,
   DoubleLeftOutlined,
   DashboardOutlined,
-  LogoutOutlined
+  LogoutOutlined,
+  TeamOutlined
 } from '@ant-design/icons';
 
-const SideNav = ({ collapsed, onClose }) => {
+const SideNav = ({ collapsed, onClose, user }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const menuItems = [
-    {
-      key: '/driver/tasks',
-      icon: <DashboardOutlined />,
-      label: 'My Tasks',
-    },
-    {
-      key: '/driver/trip-history',
-      icon: <HistoryOutlined />,
-      label: 'Trip History',
-    },
-    {
-      key: '/profile',
-      icon: <UserOutlined />,
-      label: 'Profile',
-    },
-  ];
+  // Role-based menu items
+  const getMenuItems = () => {
+    const commonItems = [
+      {
+        key: '/profile',
+        icon: <UserOutlined />,
+        label: 'Profile',
+      },
+    ];
+
+    if (user?.role === 'driver') {
+      return [
+        {
+          key: '/driver/tasks',
+          icon: <DashboardOutlined />,
+          label: 'My Tasks',
+        },
+        {
+          key: '/driver/trip-history',
+          icon: <HistoryOutlined />,
+          label: 'Trip History',
+        },
+        ...commonItems
+      ];
+    }
+
+    if (user?.role === 'worker') {
+      return [
+        {
+          key: '/worker/today-trip',
+          icon: <TeamOutlined />,
+          label: "Today's Trip",
+        },
+        ...commonItems
+      ];
+    }
+
+    return commonItems;
+  };
+
+  const menuItems = getMenuItems();
 
   const handleMenuClick = ({ key }) => {
     console.log('Navigating to:', key);
     navigate(key);
-    onClose(); // Close sidebar after navigation
+    onClose();
   };
 
   const handleLogout = () => {
@@ -46,9 +71,16 @@ const SideNav = ({ collapsed, onClose }) => {
     navigate('/login');
   };
 
+  const getPortalTitle = () => {
+    switch(user?.role) {
+      case 'driver': return 'Driver Portal';
+      case 'worker': return 'Worker Portal';
+      default: return 'Portal';
+    }
+  };
+
   return (
     <>
-      {/* Sidebar - Fixed position, overlays content */}
       <div className={`
         fixed inset-y-0 left-0 z-50
         bg-white shadow-xl
@@ -63,11 +95,11 @@ const SideNav = ({ collapsed, onClose }) => {
               <CarOutlined className="text-blue-600 text-lg" />
             </div>
             <div className="text-left">
-              <div className="text-sm font-bold text-gray-800">Driver Portal</div>
+              <div className="text-sm font-bold text-gray-800">{getPortalTitle()}</div>
+              <div className="text-xs text-gray-500 capitalize">{user?.role}</div>
             </div>
           </div>
           
-          {/* Close button on right */}
           <Button 
             type="text" 
             icon={<DoubleLeftOutlined />} 

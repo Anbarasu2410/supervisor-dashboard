@@ -9,7 +9,7 @@ import {
   IdcardOutlined, RocketOutlined, ProjectOutlined, SafetyCertificateOutlined,
   FlagOutlined
 } from '@ant-design/icons';
-import api from '../api';
+import api from '../services/api';
 
 const { Title, Text } = Typography;
 

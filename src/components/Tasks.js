@@ -39,7 +39,7 @@ import {
   UserOutlined,
   PhoneOutlined
 } from '@ant-design/icons';
-import api from '../api';
+import api from '../services/api';
 
 const { Title, Text } = Typography;
 
@@ -128,25 +128,24 @@ const Tasks = () => {
 
   const getTaskTime = (task) => {
     return {
-      start: task.startTime || task.start_time || task.scheduledStart || 'N/A',
-      end: task.endTime || task.end_time || task.scheduledEnd || 'N/A'
+      start: task.startTime || task.scheduledStart || 'N/A',
+      end: task.endTime || task.scheduledEnd || 'N/A'
     };
   };
 
   const getTaskDetails = (task) => {
     return {
-      projectName: task.projectName || task.project_name || task.project?.name || 'Unnamed Task',
-      vehicleNumber: task.vehicleNumber || task.vehicle_number || task.vehicle?.number || 'N/A',
+      projectName: task.projectName || task.project?.name || 'Unnamed Task',
+      vehicleNumber: task.vehicleNumber || task.vehicle?.number || 'N/A',
       passengers: task.passengers || task.passengerCount || task.employeeCount || 0,
-      pickupLocation: task.pickupLocation || task.pickup_location || task.pickupAddress || 'Not specified',
-      dropLocation: task.dropLocation || task.drop_location || task.dropAddress || 'Not specified',
+      pickupLocation: task.pickupLocation || task.pickupAddress || 'Not specified',
+      dropLocation: task.dropLocation || task.dropAddress || 'Not specified',
       taskId: task.taskId || task.id || task._id || 'unknown',
-      // Driver information from backend
-      driverName: task.driverName || task.driver_name || 'Unknown Driver',
-      driverPhone: task.driverPhone || task.driver_phone || 'Not available',
-      driverPhoto: task.driverPhoto || task.driver_photo || null,
-      employeeId: task.employeeId || task.employee_id || null,
-      driverId: task.driverId || task.driver_id || 'N/A'
+      driverName: task.driverName || 'Unknown Driver',
+      driverPhone: task.driverPhone || 'Not available',
+      driverPhoto: task.driverPhoto || null,
+      employeeId: task.employeeId || null,
+      driverId: task.driverId || 'N/A'
     };
   };
 

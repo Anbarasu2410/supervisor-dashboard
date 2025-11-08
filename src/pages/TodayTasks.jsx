@@ -33,7 +33,7 @@ import {
   UserOutlined,
   PhoneOutlined
 } from '@ant-design/icons';
-import api from '../api';
+import api from '../services/api';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;

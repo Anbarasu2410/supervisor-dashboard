@@ -30,7 +30,7 @@ import {
   SafetyCertificateOutlined
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
-import api from '../api';
+import api from '../services/api';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;

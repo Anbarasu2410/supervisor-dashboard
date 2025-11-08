@@ -91,7 +91,7 @@ const DriverProfile = () => {
     try {
       setLoading(true);
       
-      const res = await axios.get(`${API_BASE_URL}/api/driver/profile`, {
+      const res = await axios.get(`${API_BASE_URL}/driver/profile`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       
@@ -199,7 +199,7 @@ const DriverProfile = () => {
 
     try {
       const res = await axios.post(
-        `${API_BASE_URL}/api/driver/profile/photo`,
+        `${API_BASE_URL}/driver/profile/photo`,
         formData, 
         {
           headers: {
@@ -299,7 +299,7 @@ const DriverProfile = () => {
           <div className="mb-8">
             <Title level={2} className="text-gray-800">
               <IdcardOutlined className="mr-3" />
-              Driver Profile
+              Profile
             </Title>
             <Text className="text-gray-600">Manage your profile information and security settings</Text>
           </div>

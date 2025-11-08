@@ -34,7 +34,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
-import api from '../api';
+import api from '../services/api';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -245,9 +245,9 @@ const TripHistory = () => {
           ) : (
             trips.map((trip, index) => {
               const statusConfig = getStatusConfig(trip.status);
-              const tripDate = formatDate(trip.taskDate || trip.start_time);
-              const startTime = formatTime(trip.start_time);
-              const endTime = formatTime(trip.end_time);
+              const tripDate = formatDate(trip.taskDate || trip.startTime);
+              const startTime = formatTime(trip.startTime);
+              const endTime = formatTime(trip.endTime);
 
               return (
                 <Card 
@@ -280,13 +280,13 @@ const TripHistory = () => {
                       <div className="flex items-center space-x-2">
                         <ProjectOutlined className="text-green-500" />
                         <Text strong className="text-gray-700">Project: </Text>
-                        <Text className="text-gray-800">{trip.project_name || 'Unnamed Trip'}</Text>
+                        <Text className="text-gray-800">{trip.projectName || 'Unnamed Trip'}</Text>
                       </div>
 
                       <div className="flex items-center space-x-2">
                         <CarOutlined className="text-orange-500" />
                         <Text strong className="text-gray-700">Vehicle: </Text>
-                        <Text className="text-gray-800">{trip.vehicle_number || 'N/A'}</Text>
+                        <Text className="text-gray-800">{trip.vehicleNumber || 'N/A'}</Text>
                       </div>
 
                       <div className="flex items-center space-x-2">
@@ -299,7 +299,7 @@ const TripHistory = () => {
                         <EnvironmentOutlined className="text-green-500 mt-1" />
                         <div>
                           <Text strong className="text-gray-700">Pickup: </Text>
-                          <Text className="text-gray-800">{trip.pickup_location || 'Not specified'}</Text>
+                          <Text className="text-gray-800">{trip.pickupLocation || 'Not specified'}</Text>
                         </div>
                       </div>
 
@@ -307,7 +307,7 @@ const TripHistory = () => {
                         <EnvironmentOutlined className="text-orange-500 mt-1" />
                         <div>
                           <Text strong className="text-gray-700">Drop: </Text>
-                          <Text className="text-gray-800">{trip.drop_location || 'Not specified'}</Text>
+                          <Text className="text-gray-800">{trip.dropLocation || 'Not specified'}</Text>
                         </div>
                       </div>
                     </div>
@@ -317,7 +317,7 @@ const TripHistory = () => {
                         <Button
                           type="primary"
                           icon={<EyeOutlined />}
-                          onClick={() => handleViewSummary(trip.task_id || trip.id)}
+                          onClick={() => handleViewSummary(trip.taskId || trip.id)}
                           className="bg-green-600 hover:bg-green-700 border-green-600 w-full"
                           size="large"
                         >
