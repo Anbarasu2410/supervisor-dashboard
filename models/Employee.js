@@ -32,7 +32,7 @@ const employeeSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
-  photo_url: {  // New field
+  photoUrl: {  // New field
     type: String,
     default: null
   },

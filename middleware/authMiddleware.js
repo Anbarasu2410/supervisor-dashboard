@@ -19,6 +19,7 @@ export const verifyToken = async (req, res, next) => {
     const token = authHeader.split(" ")[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
+    // ✅ Use the same field names as your auth controller
     const user = await User.findOne({ id: decoded.userId });
     if (!user) {
       return res.status(401).json({ 
@@ -34,24 +35,24 @@ export const verifyToken = async (req, res, next) => {
       });
     }
 
+    // ✅ Get the actual role from CompanyUser (no hardcoded role check)
     const companyUser = await CompanyUser.findOne({ 
-      userId: decoded.userId,
-      role: "driver" 
+      userId: decoded.userId
     });
 
     if (!companyUser) {
       return res.status(403).json({ 
         success: false,
-        message: "Access denied. User is not registered as a driver." 
+        message: "Access denied. User is not registered in any company." 
       });
     }
 
-    // Attach user info to request
+    // ✅ Attach user info to request (matching your auth controller structure)
     req.user = {
       userId: decoded.userId,
       companyId: decoded.companyId,
-      role: decoded.role,
-      email: user.email,
+      role: decoded.role, // Use from token (already validated in login)
+      email: decoded.email,
       name: user.name
     };
 

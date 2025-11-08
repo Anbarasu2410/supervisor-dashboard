@@ -13,6 +13,7 @@ import fleetTaskRoutes from './routes/fleetTaskRoutes.js';
 import fleetTaskPassengerRoutes from './routes/fleetTaskPassengerRoutes.js';
 import fleetVehicleRoutes from './routes/fleetVehicleRoutes.js';
 import projectRoutes from './routes/projectRoutes.js';
+import workerRoutes from './routes/workerRoutes.js'; 
 
 dotenv.config();
 
@@ -37,6 +38,7 @@ app.use('/api/fleet-tasks', fleetTaskRoutes);
 app.use('/api/fleet-task-passengers', fleetTaskPassengerRoutes);
 app.use('/api/fleet-vehicles', fleetVehicleRoutes);
 app.use('/api/projects', projectRoutes);
+app.use('/api/worker', workerRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {

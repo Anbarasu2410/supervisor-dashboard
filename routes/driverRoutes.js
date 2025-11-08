@@ -17,9 +17,9 @@ import {
 import { verifyToken, authorizeRoles } from '../middleware/authMiddleware.js';
 
 // 🔹 Driver Profile Routes
-router.get("/profile", verifyToken, authorizeRoles("driver"), getDriverProfile);
-router.put("/profile/password", verifyToken, authorizeRoles("driver"), changeDriverPassword);
-router.post("/profile/photo", verifyToken, authorizeRoles("driver"), upload.single('photo'), uploadDriverPhoto);
+router.get("/profile", verifyToken,  getDriverProfile);
+router.put("/profile/password", verifyToken,  changeDriverPassword);
+router.post("/profile/photo", verifyToken,  upload.single('photo'), uploadDriverPhoto);
 
 // 🔹 Driver Task Routes
 router.get("/tasks/today", verifyToken, authorizeRoles("driver"), getTodaysTasks);
